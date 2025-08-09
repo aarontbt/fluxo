@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Switch } from '@/components/ui/switch'
 import { Clock, FileText, Copy, Download, Edit3, CheckCircle } from 'lucide-react'
 import { motion } from 'framer-motion'
 
@@ -15,11 +16,27 @@ interface MedicalRecording {
   duration: number
   audioBlob?: Blob
   transcription?: string
+  sessionNotes?: {
+    timestamp: string
+    note: string
+  }[]
   medicalNotes?: {
-    subjective: string
+    subjective: {
+      chiefComplaint: string
+      history: string
+    }
     objective: string
     assessment: string
-    plan: string
+    plan: {
+      medications: string
+      procedures: string
+      followUp: string
+    }
+    ros?: {
+      cardiovascular: string
+      respiratory: string
+      musculoskeletal: string
+    }
   }
   isProcessing: boolean
 }
@@ -41,6 +58,7 @@ export function TranscriptionDisplay({
 }: TranscriptionDisplayProps) {
   const [activeTab, setActiveTab] = useState<'transcription' | 'soap'>('transcription')
   const [copiedSection, setCopiedSection] = useState<string | null>(null)
+  const [planMode, setPlanMode] = useState(false)
 
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
@@ -144,27 +162,39 @@ export function TranscriptionDisplay({
           <>
             {/* Tab Navigation */}
             <div className="px-6 pt-4">
-              <div className="flex gap-1 bg-gray-50 p-1 rounded-lg w-fit">
-                <button
-                  onClick={() => setActiveTab('transcription')}
-                  className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
-                    activeTab === 'transcription'
-                      ? 'bg-white text-blue-600 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  Transcription
-                </button>
-                <button
-                  onClick={() => setActiveTab('soap')}
-                  className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
-                    activeTab === 'soap'
-                      ? 'bg-white text-blue-600 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  SOAP Notes
-                </button>
+              <div className="flex items-center justify-between">
+                <div className="flex gap-1 bg-gray-50 p-1 rounded-lg w-fit">
+                  <button
+                    onClick={() => setActiveTab('transcription')}
+                    className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
+                      activeTab === 'transcription'
+                        ? 'bg-white text-blue-600 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    Transcription
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('soap')}
+                    className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
+                      activeTab === 'soap'
+                        ? 'bg-white text-blue-600 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    SOAP Notes
+                  </button>
+                </div>
+                
+                {/* Plan Mode Switch */}
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-gray-600">Plan Mode</span>
+                  <Switch 
+                    checked={planMode} 
+                    onCheckedChange={setPlanMode}
+                    className="data-[state=checked]:bg-red-500"
+                  />
+                </div>
               </div>
             </div>
 
@@ -196,8 +226,68 @@ export function TranscriptionDisplay({
                     <p className="text-gray-700 leading-relaxed">{recording.transcription}</p>
                   </div>
 
-                  {/* Extracted Entities */}
-                  <div className="bg-blue-50 rounded-lg p-6">
+                  {/* Session Notes */}
+                  {recording.sessionNotes && recording.sessionNotes.length > 0 && (
+                    <div className="bg-green-50 rounded-lg p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-medium text-gray-900">Session Notes</h3>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleCopy(
+                            recording.sessionNotes!.map(note => `[${note.timestamp}] ${note.note}`).join('\n'),
+                            'sessionNotes'
+                          )}
+                        >
+                          {copiedSection === 'sessionNotes' ? (
+                            <CheckCircle className="h-4 w-4 mr-1 text-green-600" />
+                          ) : (
+                            <Copy className="h-4 w-4 mr-1" />
+                          )}
+                          Copy All
+                        </Button>
+                      </div>
+                      <div className="space-y-3">
+                        {recording.sessionNotes.map((note, index) => (
+                          <div key={index} className="bg-white p-4 rounded-md border border-green-200">
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1">
+                                <div className="text-xs text-green-700 font-mono mb-1">{note.timestamp}</div>
+                                <div className="text-sm text-gray-800 leading-relaxed">{note.note}</div>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleCopy(note.note, `sessionNote-${index}`)}
+                                className="ml-2 h-6 w-6 p-0"
+                              >
+                                {copiedSection === `sessionNote-${index}` ? (
+                                  <CheckCircle className="h-3 w-3 text-green-600" />
+                                ) : (
+                                  <Copy className="h-3 w-3" />
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="mt-3 text-xs text-green-700">
+                        Notes added during recording session
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+
+              {activeTab === 'soap' && recording.medicalNotes && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="space-y-6"
+                >
+                  {/* Extracted Entities - Plan Mode */}
+                  {planMode && (
+                    <div className="bg-blue-50 rounded-lg p-6">
                     <h3 className="text-lg font-medium text-gray-900 mb-4">Extracted Medical Information</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
@@ -241,24 +331,27 @@ export function TranscriptionDisplay({
                         </div>
                       </div>
                     </div>
-                  </div>
-                </motion.div>
-              )}
+                    </div>
+                  )}
 
-              {activeTab === 'soap' && recording.medicalNotes && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="space-y-6"
-                >
-                  {/* Subjective */}
+                  {/* SOAP Notes - Plan Mode */}
+                  {planMode && (
+                    <>
+                      {/* Subjective */}
                   <div className="bg-blue-50 rounded-lg p-6">
                     <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-lg font-semibold text-blue-900">Subjective</h3>
+                      <h3 className="text-lg font-semibold text-blue-900 flex items-center gap-2">
+                        Subjective
+                      </h3>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleCopy(recording.medicalNotes!.subjective, 'subjective')}
+                        onClick={() => handleCopy(
+                          typeof recording.medicalNotes!.subjective === 'string'
+                            ? recording.medicalNotes!.subjective
+                            : `Chief Complaint: ${recording.medicalNotes!.subjective.chiefComplaint}\n\nHistory: ${recording.medicalNotes!.subjective.history}`,
+                          'subjective'
+                        )}
                       >
                         {copiedSection === 'subjective' ? (
                           <CheckCircle className="h-4 w-4 mr-1 text-green-600" />
@@ -268,13 +361,32 @@ export function TranscriptionDisplay({
                         Copy
                       </Button>
                     </div>
-                    <p className="text-gray-700 leading-relaxed">{recording.medicalNotes.subjective}</p>
+                    {typeof recording.medicalNotes.subjective === 'string' ? (
+                      <p className="text-gray-700 leading-relaxed">{recording.medicalNotes.subjective}</p>
+                    ) : (
+                      <div className="space-y-3">
+                        <div>
+                          <p className="text-sm font-medium text-gray-700 mb-1">Chief Complaint</p>
+                          <p className="text-sm text-gray-600 leading-relaxed">
+                            {recording.medicalNotes.subjective.chiefComplaint}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-700 mb-1">History</p>
+                          <p className="text-sm text-gray-600 leading-relaxed">
+                            {recording.medicalNotes.subjective.history}
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Objective */}
                   <div className="bg-green-50 rounded-lg p-6">
                     <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-lg font-semibold text-green-900">Objective</h3>
+                      <h3 className="text-lg font-semibold text-green-900 flex items-center gap-2">
+                        Objective
+                      </h3>
                       <Button
                         variant="outline"
                         size="sm"
@@ -294,7 +406,9 @@ export function TranscriptionDisplay({
                   {/* Assessment */}
                   <div className="bg-yellow-50 rounded-lg p-6">
                     <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-lg font-semibold text-yellow-900">Assessment</h3>
+                      <h3 className="text-lg font-semibold text-yellow-900 flex items-center gap-2">
+                        Assessment
+                      </h3>
                       <Button
                         variant="outline"
                         size="sm"
@@ -314,11 +428,18 @@ export function TranscriptionDisplay({
                   {/* Plan */}
                   <div className="bg-purple-50 rounded-lg p-6">
                     <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-lg font-semibold text-purple-900">Plan</h3>
+                      <h3 className="text-lg font-semibold text-purple-900 flex items-center gap-2">
+                        Plan
+                      </h3>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleCopy(recording.medicalNotes!.plan, 'plan')}
+                        onClick={() => handleCopy(
+                          typeof recording.medicalNotes!.plan === 'string'
+                            ? recording.medicalNotes!.plan
+                            : `Medications: ${recording.medicalNotes!.plan.medications}\n\nProcedures: ${recording.medicalNotes!.plan.procedures}\n\nFollow-up: ${recording.medicalNotes!.plan.followUp}`,
+                          'plan'
+                        )}
                       >
                         {copiedSection === 'plan' ? (
                           <CheckCircle className="h-4 w-4 mr-1 text-green-600" />
@@ -328,8 +449,27 @@ export function TranscriptionDisplay({
                         Copy
                       </Button>
                     </div>
-                    <p className="text-gray-700 leading-relaxed">{recording.medicalNotes.plan}</p>
+                    {typeof recording.medicalNotes.plan === 'string' ? (
+                      <p className="text-gray-700 leading-relaxed">{recording.medicalNotes.plan}</p>
+                    ) : (
+                      <div className="space-y-3 text-sm text-gray-600 leading-relaxed">
+                        <div>
+                          <p className="text-sm font-medium text-gray-700 mb-1">Medications</p>
+                          <p>{recording.medicalNotes.plan.medications}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-700 mb-1">Procedures</p>
+                          <p>{recording.medicalNotes.plan.procedures}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-700 mb-1">Follow-up</p>
+                          <p>{recording.medicalNotes.plan.followUp}</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
+                    </>
+                  )}
                 </motion.div>
               )}
             </div>

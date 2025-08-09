@@ -29,9 +29,9 @@ export default function Home() {
   const [noteHistory, setNoteHistory] = useState<{timestamp: string, note: string}[]>([])
 
   const patientInfo = {
-    name: "Jen Garcia",
+    name: "Aisha",
     image: "/api/placeholder/40/40",
-    visitType: "Follow-up visit"
+    visitType: "First visit"
   }
 
   const handleSelectRecording = (recording: typeof recordings[0]) => {
@@ -65,7 +65,7 @@ export default function Home() {
       console.log('Sending notes to transcriber:', notesForTranscriber)
     }
 
-    await stopRecording()
+    await stopRecording(allNotes.length > 0 ? allNotes : undefined)
     setViewMode('transcription')
   }
 

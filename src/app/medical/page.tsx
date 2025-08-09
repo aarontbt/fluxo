@@ -7,17 +7,42 @@ import { MedicalNotesPanel } from '@/components/medical-notes-panel'
 import { MobileMedicalInterface } from '@/components/mobile-medical-interface'
 import { useAudioRecorder } from '@/hooks/use-audio-recorder'
 
-interface Recording {
+interface MedicalRecording {
   id: string
+  patientName: string
   date: string
   time: string
-  type: string
-  duration?: string
+  duration: number
+  audioBlob?: Blob
+  transcription?: string
+  sessionNotes?: {
+    timestamp: string
+    note: string
+  }[]
+  medicalNotes?: {
+    subjective: {
+      chiefComplaint: string
+      history: string
+    }
+    objective: string
+    assessment: string
+    plan: {
+      medications: string
+      procedures: string
+      followUp: string
+    }
+    ros?: {
+      cardiovascular: string
+      respiratory: string
+      musculoskeletal: string
+    }
+  }
+  isProcessing: boolean
 }
 
 export default function MedicalConsultationPage() {
   const { isRecording, audioLevel, toggleRecording, duration } = useAudioRecorder()
-  const [selectedRecording, setSelectedRecording] = useState<Recording | null>(null)
+  const [selectedRecording, setSelectedRecording] = useState<MedicalRecording | null>(null)
   
   const patientInfo = {
     name: "Jen Garcia",
@@ -25,7 +50,7 @@ export default function MedicalConsultationPage() {
     visitType: "Follow-up visit"
   }
 
-  const handleSelectRecording = (recording: Recording) => {
+  const handleSelectRecording = (recording: MedicalRecording) => {
     setSelectedRecording(recording)
   }
 
@@ -42,8 +67,15 @@ export default function MedicalConsultationPage() {
           patientImage={patientInfo.image}
           visitType={patientInfo.visitType}
           isRecording={isRecording}
+          isPaused={false}
           duration={duration}
-          onToggleRecording={toggleRecording}
+          audioLevel={audioLevel}
+          currentRecording={null}
+          recordings={[]}
+          onStartRecording={async () => toggleRecording()}
+          onStopRecording={async () => toggleRecording()}
+          onPauseRecording={() => {}}
+          onResumeRecording={() => {}}
         />
       </div>
 
@@ -53,6 +85,8 @@ export default function MedicalConsultationPage() {
         <PatientRecordingList
           patientName={patientInfo.name}
           patientImage={patientInfo.image}
+          recordings={[]}
+          currentRecording={null}
           onSelectRecording={handleSelectRecording}
           onStartNewRecording={handleStartNewRecording}
         />

@@ -34,7 +34,7 @@ export function EnhancedRecordingInterface({
   onResumeRecording,
 }: EnhancedRecordingInterfaceProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const animationFrameRef = useRef<number>()
+  const animationFrameRef = useRef<number | undefined>(undefined)
   const audioContextRef = useRef<AudioContext | null>(null)
   const analyzerRef = useRef<AnalyserNode | null>(null)
   const mediaStreamRef = useRef<MediaStream | null>(null)
@@ -75,7 +75,8 @@ export function EnhancedRecordingInterface({
       const source = audioContext.createMediaStreamSource(stream)
       source.connect(analyzer)
 
-      frequencyDataRef.current = new Uint8Array(analyzer.frequencyBinCount)
+      const buffer = new ArrayBuffer(analyzer.frequencyBinCount)
+      frequencyDataRef.current = new Uint8Array(buffer)
     } catch (error) {
       console.error('Failed to initialize audio:', error)
       
@@ -139,7 +140,7 @@ export function EnhancedRecordingInterface({
       // Get real-time audio data if available
       let currentAmplitude = 0
       if (analyzerRef.current && frequencyDataRef.current && isRecording && !isPaused) {
-        analyzerRef.current.getByteFrequencyData(frequencyDataRef.current)
+        analyzerRef.current.getByteFrequencyData(frequencyDataRef.current as Uint8Array<ArrayBuffer>)
         const frequencyData = frequencyDataRef.current
         
         // Calculate average amplitude from frequency data

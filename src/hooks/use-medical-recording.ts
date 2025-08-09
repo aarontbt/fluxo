@@ -10,11 +10,27 @@ interface MedicalRecording {
   duration: number
   audioBlob?: Blob
   transcription?: string
+  sessionNotes?: {
+    timestamp: string
+    note: string
+  }[]
   medicalNotes?: {
-    subjective: string
+    subjective: {
+      chiefComplaint: string
+      history: string
+    }
     objective: string
     assessment: string
-    plan: string
+    plan: {
+      medications: string
+      procedures: string
+      followUp: string
+    }
+    ros?: {
+      cardiovascular: string
+      respiratory: string
+      musculoskeletal: string
+    }
   }
   isProcessing: boolean
 }
@@ -27,7 +43,7 @@ interface UseMedicalRecordingReturn {
   currentRecording: MedicalRecording | null
   recordings: MedicalRecording[]
   startRecording: (patientName: string) => Promise<void>
-  stopRecording: () => Promise<void>
+  stopRecording: (sessionNotes?: {timestamp: string, note: string}[]) => Promise<void>
   pauseRecording: () => void
   resumeRecording: () => void
   processRecording: (recording: MedicalRecording) => Promise<void>
@@ -48,11 +64,33 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
       time: '12:01pm',
       duration: 332, // 5:32
       transcription: "Patient presents with lower back pain for 3 days. Started at new gym doing Pilates. Pain worsened during movement. Patient was able to drive home and crawl to front door. Pain is sharp and stabbing.",
+      sessionNotes: [
+        {
+          timestamp: '1:09:44 AM',
+          note: 'I want to add my notes...'
+        },
+        {
+          timestamp: '1:09:52 AM',
+          note: 'I like Macdonals..'
+        }
+      ],
       medicalNotes: {
-        subjective: "Chief Complaint: Jen presents today for back pain. Jen states that she's been experiencing lower back pain for 3 days now as she recently started at a new gym and threw her back out during pilates when she was doing a move in class but heard a popping noise in her back. She was barely able to drive home and crawl to the front door and then passed out from the pain.",
+        subjective: {
+          chiefComplaint: "Jen presents today for back pain.",
+          history: "Jen states that she's been experiencing lower back pain for 3 days now as she recently started at a new gym and threw her back out during pilates when she was doing a move in class but heard a popping noise in her back. She was barely able to drive home and crawl to the front door and then passed out from the pain."
+        },
         objective: "Vital signs stable. Patient ambulating with difficulty. Range of motion limited due to pain.",
         assessment: "Acute lower back pain, likely muscle strain from new exercise regimen.",
-        plan: "Pain management with NSAIDs, rest, and follow-up in 1 week. Refer to physical therapy if no improvement."
+        plan: {
+          medications: "Pain management with NSAIDs",
+          procedures: "No procedures needed at this time",
+          followUp: "Follow-up in 1 week. Refer to physical therapy if no improvement."
+        },
+        ros: {
+          cardiovascular: "chest pain",
+          respiratory: "shortness of breath", 
+          musculoskeletal: "back pain"
+        }
       },
       isProcessing: false
     },
@@ -148,7 +186,7 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
     }
   }, [currentRecording, isRecording, isPaused])
 
-  const stopRecording = useCallback(async () => {
+  const stopRecording = useCallback(async (sessionNotes?: {timestamp: string, note: string}[]) => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop()
       setIsRecording(false)
@@ -167,6 +205,7 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
         const finalRecording = {
           ...currentRecording,
           duration,
+          sessionNotes,
           isProcessing: true
         }
         setCurrentRecording(finalRecording)
@@ -207,10 +246,22 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
       ...recording,
       transcription: "Patient presents with persistent lower back pain for 3 days. Pain started after beginning new exercise routine at gym during Pilates class. Patient heard popping sound and experienced immediate severe pain. Was barely able to drive home, had to crawl to front door due to pain severity. Pain is described as sharp and stabbing, limiting mobility significantly.",
       medicalNotes: {
-        subjective: "Chief Complaint: Jen presents today for persistent severe lower back pain. History: Patient reports onset of lower back pain 3 days ago while attending new gym. Pain began during Pilates class when patient heard audible 'pop' in back. Severity of pain required crawling to enter home. Patient describes pain as sharp and stabbing.",
+        subjective: {
+          chiefComplaint: "Jen presents today for persistent severe lower back pain.",
+          history: "Patient reports onset of lower back pain 3 days ago while attending new gym. Pain began during Pilates class when patient heard audible 'pop' in back. Severity of pain required crawling to enter home. Patient describes pain as sharp and stabbing."
+        },
         objective: "Patient ambulating with visible discomfort. Range of motion testing limited by pain. Vital signs within normal limits.",
         assessment: "Acute lumbar strain, likely related to new exercise activity. Rule out disc injury given mechanism and severity.",
-        plan: "1. NSAIDs for pain management 2. Activity modification - avoid aggravating movements 3. Follow-up in 1 week 4. Physical therapy referral if no improvement 5. Consider imaging if symptoms persist"
+        plan: {
+          medications: "NSAIDs for pain management",
+          procedures: "Activity modification - avoid aggravating movements", 
+          followUp: "Follow-up in 1 week. Physical therapy referral if no improvement. Consider imaging if symptoms persist"
+        },
+        ros: {
+          cardiovascular: "chest pain",
+          respiratory: "shortness of breath",
+          musculoskeletal: "back pain"
+        }
       },
       isProcessing: false
     }

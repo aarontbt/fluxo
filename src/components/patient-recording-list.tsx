@@ -14,11 +14,27 @@ interface MedicalRecording {
   duration: number
   audioBlob?: Blob
   transcription?: string
+  sessionNotes?: {
+    timestamp: string
+    note: string
+  }[]
   medicalNotes?: {
-    subjective: string
+    subjective: {
+      chiefComplaint: string
+      history: string
+    }
     objective: string
     assessment: string
-    plan: string
+    plan: {
+      medications: string
+      procedures: string
+      followUp: string
+    }
+    ros?: {
+      cardiovascular: string
+      respiratory: string
+      musculoskeletal: string
+    }
   }
   isProcessing: boolean
 }
@@ -54,14 +70,14 @@ export function PatientRecordingList({
   }
 
   return (
-    <div className="w-80 bg-white border-r border-gray-200 flex flex-col h-full">
+    <div className="w-full lg:w-80 bg-white border-r border-gray-200 flex flex-col h-full">
       {/* Header */}
       <div className="p-4">
-        <div className="mb-6">
+        <div className="mb-6 hidden lg:block">
           <SparklesText
             text="Fluxo Scribe"
-            className="text-2xl"
-            sparklesCount={8}
+            className="text-3xl"
+            sparklesCount={4}
             align="left"
           />
         </div>

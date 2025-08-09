@@ -3,10 +3,12 @@
 import { useState } from 'react'
 import { ChevronLeft, Menu, Settings } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
+import { SparklesText } from '@/components/ui/sparkles-text'
 import { PatientRecordingList } from './patient-recording-list'
 import { EnhancedRecordingInterface } from './enhanced-recording-interface'
 import { TranscriptionDisplay } from './transcription-display'
+import { MedicalNotesPanel } from './medical-notes-panel'
 import { motion, AnimatePresence } from 'framer-motion'
 
 interface MedicalRecording {
@@ -17,11 +19,27 @@ interface MedicalRecording {
   duration: number
   audioBlob?: Blob
   transcription?: string
+  sessionNotes?: {
+    timestamp: string
+    note: string
+  }[]
   medicalNotes?: {
-    subjective: string
+    subjective: {
+      chiefComplaint: string
+      history: string
+    }
     objective: string
     assessment: string
-    plan: string
+    plan: {
+      medications: string
+      procedures: string
+      followUp: string
+    }
+    ros?: {
+      cardiovascular: string
+      respiratory: string
+      musculoskeletal: string
+    }
   }
   isProcessing: boolean
 }
@@ -61,6 +79,7 @@ export function MobileMedicalInterface({
 }: MobileMedicalInterfaceProps) {
   const [currentView, setCurrentView] = useState<View>('recording')
   const [selectedRecording, setSelectedRecording] = useState<MedicalRecording | null>(null)
+  const [isNotesSheetOpen, setIsNotesSheetOpen] = useState(false)
 
   const handleSelectRecording = (recording: MedicalRecording) => {
     setSelectedRecording(recording)
@@ -137,18 +156,13 @@ export function MobileMedicalInterface({
                 <ChevronLeft className="h-4 w-4" />
               </Button>
             )}
-            
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={patientImage} alt={patientName} />
-              <AvatarFallback className="bg-blue-100 text-blue-600 text-xs">
-                {patientName.split(' ').map(n => n[0]).join('')}
-              </AvatarFallback>
-            </Avatar>
-            
-            <div>
-              <h1 className="font-semibold text-gray-900 text-sm">{patientName}</h1>
-              <p className="text-xs text-gray-500">{visitType}</p>
-            </div>
+
+            <SparklesText
+              text="Fluxo Scribe"
+              className="text-lg"
+              sparklesCount={4}
+              align="left"
+            />
           </div>
 
           <div className="flex items-center gap-2">
@@ -160,16 +174,25 @@ export function MobileMedicalInterface({
             >
               <Menu className="h-4 w-4" />
             </Button>
-            
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setCurrentView('transcription')}
-              className={`h-8 w-8 ${currentView === 'transcription' ? 'bg-blue-100 text-blue-600' : ''}`}
-              disabled={!currentRecording?.transcription && !selectedRecording}
-            >
-              <Settings className="h-4 w-4" />
-            </Button>
+
+            <Sheet open={isNotesSheetOpen} onOpenChange={setIsNotesSheetOpen}>
+              <SheetTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={`h-8 w-8 ${isNotesSheetOpen ? 'bg-blue-100 text-blue-600' : ''}`}
+                  disabled={!currentRecording?.transcription && !selectedRecording}
+                >
+                  <Settings className="h-4 w-4" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-full sm:w-96 p-0">
+                <MedicalNotesPanel
+                  transcriptionText={selectedRecording?.transcription || currentRecording?.transcription}
+                  lastSaved="a minute ago"
+                />
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
       </div>
@@ -203,7 +226,7 @@ export function MobileMedicalInterface({
               <span className="text-xs">Recordings</span>
             </div>
           </Button>
-          
+
           <Button
             variant="ghost"
             onClick={() => setCurrentView('recording')}
@@ -214,18 +237,27 @@ export function MobileMedicalInterface({
               <span className="text-xs">Record</span>
             </div>
           </Button>
-          
-          <Button
-            variant="ghost"
-            onClick={() => setCurrentView('transcription')}
-            className={`flex-1 py-3 ${currentView === 'transcription' ? 'text-blue-600' : 'text-gray-500'}`}
-            disabled={!currentRecording?.transcription && !selectedRecording}
-          >
-            <div className="text-center">
-              <Settings className="h-5 w-5 mx-auto mb-1" />
-              <span className="text-xs">Notes</span>
-            </div>
-          </Button>
+
+          <Sheet open={isNotesSheetOpen} onOpenChange={setIsNotesSheetOpen}>
+            <SheetTrigger asChild>
+              <Button
+                variant="ghost"
+                className={`flex-1 py-3 ${isNotesSheetOpen ? 'text-blue-600' : 'text-gray-500'}`}
+                disabled={!currentRecording?.transcription && !selectedRecording}
+              >
+                <div className="text-center">
+                  <Settings className="h-5 w-5 mx-auto mb-1" />
+                  <span className="text-xs">Notes</span>
+                </div>
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-full sm:w-96 p-0">
+              <MedicalNotesPanel
+                transcriptionText={selectedRecording?.transcription || currentRecording?.transcription}
+                lastSaved="a minute ago"
+              />
+            </SheetContent>
+          </Sheet>
         </div>
       </div>
     </div>
