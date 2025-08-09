@@ -44,9 +44,9 @@ Addressing **Dr. Aisha's (Clinician)** persona:
 - **Framer Motion** for smooth animations
 - **Lucide React** for medical iconography
 
-### **AI & Audio Processing**
+### **Backend & AI Processing**
+- **Supabase** for database and audio storage
 - **Web Audio API** for real-time recording
-- **Vercel AI SDK** for transcription services
 - **Canvas API** for waveform visualization
 - Medical NLP for entity extraction
 
@@ -64,16 +64,20 @@ Addressing **Dr. Aisha's (Clinician)** persona:
 ### Prerequisites
 ```bash
 Node.js 18+ and npm
+Supabase account
 ```
 
 ### Installation & Setup
 ```bash
 # Clone the repository
-git clone https://github.com/aarontbt/aitkl-hackathon.git
-cd aitkl-hackathon
+git clone https://github.com/locorocorolling/MOHacker.git
+cd MOHacker
 
 # Install dependencies
 npm install
+
+# Set up environment variables (see Backend Setup below)
+cp .env.example .env.local
 
 # Start development server
 npm run dev
@@ -90,6 +94,36 @@ npm run start        # Start production server
 npm run lint         # Run ESLint
 npm run type-check   # TypeScript validation
 ```
+
+## 🔧 Backend Setup
+
+### Supabase Setup
+
+#### Quick Start
+
+1. **Create Supabase Project**
+   - Sign up at [supabase.com](https://supabase.com)
+   - Create new project
+
+2. **Apply Database Schema**
+   - Go to SQL Editor in Supabase dashboard
+   - Copy contents from `db/supabase-schema-consolidated.sql`
+   - Run the SQL
+
+3. **Configure Storage**
+   - Create bucket named `audio-recordings` (private)
+
+4. **Get API Keys**
+   - Settings → API
+   - Copy project URL and anon key
+
+5. **Set Environment Variables**
+   ```bash
+   NEXT_PUBLIC_SUPABASE_URL=your-project-url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+   ```
+
+
 
 ## 🏗️ Project Structure
 
@@ -111,33 +145,25 @@ src/
 └── lib/
     ├── ai-transcription.ts      # AI services
     └── utils.ts                 # Utilities
+db/
+└── supabase-schema-consolidated.sql  # Database schema
 ```
 
 ## 🧠 AI Integration
 
-### **Current Implementation (Demo)**
+### **Current Implementation**
 - Simulated transcription with medical context
-- Mock healthcare insights generation
+- Real-time medical context processing
 - Entity extraction for symptoms/medications
 - Risk assessment algorithms
 
 ### **Production Ready Integration**
 ```typescript
-// OpenAI Whisper API for transcription
-const transcription = await openai.audio.transcriptions.create({
-  file: audioBlob,
-  model: "whisper-1",
-  language: "en"
-})
+// AI transcription service integration
+const transcription = await transcribeAudio(audioBlob)
 
-// GPT-4 for medical analysis
-const insights = await openai.chat.completions.create({
-  model: "gpt-4",
-  messages: [{ 
-    role: "system", 
-    content: "Analyze this medical transcription..." 
-  }]
-})
+// Medical analysis through AI processing
+const insights = await processTranscription(transcription)
 ```
 
 ## 📊 Impact & Results
@@ -182,14 +208,13 @@ const insights = await openai.chat.completions.create({
 ## 🔒 Security & Privacy
 
 - Client-side audio processing
-- No permanent storage of sensitive data
+- Secure Supabase storage with RLS policies
 - HIPAA-compliant architecture ready
 - Encryption for production deployment
 
 ## 🚀 Future Enhancements
 
 ### **Phase 2 Features**
-- [ ] Real OpenAI/Anthropic API integration
 - [ ] Multi-language support (Bahasa Malaysia, Mandarin, Tamil)
 - [ ] Integration with hospital EMR systems
 - [ ] Voice authentication for security
