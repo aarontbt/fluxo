@@ -11,8 +11,16 @@ export interface SpeakerSegment {
   endTime?: number;
 }
 
+export interface Token {
+  text: string;
+  is_final: boolean;
+  speaker?: string;
+  confidence?: number;
+}
+
 export interface TranscriptionResult {
   text: string;
+  tokens?: Token[];
   speakerSegments: SpeakerSegment[];
   timestamp: string;
   isPartial: boolean;
@@ -128,6 +136,7 @@ export class SonioxTranscriptionService {
 
           const transcriptionResult: TranscriptionResult = {
             text: formattedText,
+            tokens: tokens, // Pass the raw tokens with is_final flags
             speakerSegments,
             timestamp: new Date().toISOString(),
             isPartial: true,
@@ -150,6 +159,7 @@ export class SonioxTranscriptionService {
 
           const transcriptionResult: TranscriptionResult = {
             text: formattedText,
+            tokens: tokens, // Pass the raw tokens
             speakerSegments,
             timestamp: new Date().toISOString(),
             isPartial: false,
