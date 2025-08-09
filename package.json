@@ -1,0 +1,57 @@
+{
+  "name": "aitkl-hackathon",
+  "version": "1.0.0",
+  "description": "**Healthcare Reimagined: Building the Future of Malaysian Health**",
+  "main": "index.js",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aarontbt/aitkl-hackathon.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/aarontbt/aitkl-hackathon/issues"
+  },
+  "homepage": "https://github.com/aarontbt/aitkl-hackathon#readme",
+  "dependencies": {
+    "@radix-ui/react-avatar": "^1.1.10",
+    "@radix-ui/react-slot": "^1.2.3",
+    "@tanstack/react-query": "^5.84.2",
+    "@types/node": "^24.2.1",
+    "@types/react": "^19.1.9",
+    "@typescript-eslint/eslint-plugin": "^8.39.0",
+    "@typescript-eslint/parser": "^8.39.0",
+    "ai": "^5.0.8",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "eslint": "^9.33.0",
+    "eslint-config-next": "^15.4.6",
+    "framer-motion": "^12.23.12",
+    "lottie-react": "^2.4.1",
+    "lucide-react": "^0.539.0",
+    "next": "^15.4.6",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "react-hook-form": "^7.62.0",
+    "tailwind-merge": "^3.3.1",
+    "tailwindcss-animate": "^1.0.7",
+    "typescript": "^5.9.2",
+    "wavesurfer.js": "^7.10.1",
+    "zod": "^4.0.16",
+    "zustand": "^5.0.7"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.17"
+  }
+}
