@@ -15,6 +15,11 @@ interface MedicalRecording {
   duration: number
   audioBlob?: Blob
   transcription?: string
+  liveTranscription?: string
+  speakerSegments?: Array<{
+    speaker: number | null
+    text: string
+  }>
   medicalNotes?: {
     subjective: string
     objective: string
@@ -139,6 +144,20 @@ export function TranscriptionDisplay({
           </motion.div>
         )}
 
+        {/* No transcription available */}
+        {!recording.isProcessing && !recording.transcription && (
+          <div className="flex-1 flex items-center justify-center p-12">
+            <div className="text-center">
+              <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No Transcription Available</h3>
+              <p className="text-gray-500 mb-6">This recording doesn't have a transcription yet.</p>
+              <Button onClick={onNewRecording} className="bg-blue-600 text-white hover:bg-blue-700">
+                Start New Recording
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Results */}
         {!recording.isProcessing && recording.transcription && (
           <>
@@ -179,7 +198,14 @@ export function TranscriptionDisplay({
                   {/* Raw Transcription */}
                   <div className="bg-gray-50 rounded-lg p-6">
                     <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-medium text-gray-900">Audio Transcription</h3>
+                      <h3 className="text-lg font-medium text-gray-900">
+                        Audio Transcription
+                        {recording.speakerSegments && recording.speakerSegments.length > 0 && (
+                          <span className="ml-2 text-sm text-gray-500">
+                            ({new Set(recording.speakerSegments.map(s => s.speaker).filter(s => s !== null)).size} speakers detected)
+                          </span>
+                        )}
+                      </h3>
                       <Button
                         variant="outline"
                         size="sm"
@@ -193,7 +219,40 @@ export function TranscriptionDisplay({
                         Copy
                       </Button>
                     </div>
-                    <p className="text-gray-700 leading-relaxed">{recording.transcription}</p>
+                    
+                    {/* Display speaker segments if available */}
+                    {recording.speakerSegments && recording.speakerSegments.length > 0 ? (
+                      <div className="space-y-3">
+                        {recording.speakerSegments.map((segment, index) => {
+                          const speakerColors = [
+                            'bg-blue-50 text-blue-900 border-blue-300',
+                            'bg-green-50 text-green-900 border-green-300',
+                            'bg-purple-50 text-purple-900 border-purple-300',
+                            'bg-orange-50 text-orange-900 border-orange-300',
+                            'bg-pink-50 text-pink-900 border-pink-300',
+                          ]
+                          const colorClass = segment.speaker !== null 
+                            ? speakerColors[segment.speaker % speakerColors.length]
+                            : 'bg-gray-50 text-gray-800 border-gray-300'
+                          
+                          return (
+                            <div 
+                              key={index}
+                              className={`p-3 rounded-lg border-l-4 ${colorClass}`}
+                            >
+                              <div className="text-xs font-medium mb-1 opacity-75">
+                                {segment.speaker !== null ? `Speaker ${segment.speaker}` : 'Unknown Speaker'}
+                              </div>
+                              <div className="text-sm leading-relaxed">
+                                {segment.text}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-gray-700 leading-relaxed">{recording.transcription}</p>
+                    )}
                   </div>
 
                   {/* Extracted Entities */}

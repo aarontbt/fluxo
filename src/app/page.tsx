@@ -5,7 +5,7 @@ import { PatientRecordingList } from '@/components/patient-recording-list'
 import { EnhancedRecordingInterface } from '@/components/enhanced-recording-interface'
 import { TranscriptionDisplay } from '@/components/transcription-display'
 import { MobileMedicalInterface } from '@/components/mobile-medical-interface'
-import { useMedicalRecording } from '@/hooks/use-medical-recording'
+import { useMedicalRecording, PROCESSING_DELAY_MS } from '@/hooks/use-medical-recording'
 
 type ViewMode = 'recording' | 'transcription'
 
@@ -52,7 +52,11 @@ export default function Home() {
 
   const handleStopRecording = async () => {
     await stopRecording()
-    setViewMode('transcription')
+    // Switch to transcription view after processing delay
+    // This gives time for the transcription to be set and processed
+    setTimeout(() => {
+      setViewMode('transcription')
+    }, PROCESSING_DELAY_MS)
   }
 
   return (

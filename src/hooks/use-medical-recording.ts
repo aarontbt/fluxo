@@ -3,6 +3,9 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { createSonioxService, SonioxTranscriptionService, TranscriptionResult } from '@/lib/soniox-service'
 
+// Constants
+export const PROCESSING_DELAY_MS = 2000 // 2 seconds for processing
+
 interface MedicalRecording {
   id: string
   patientName: string
@@ -85,14 +88,19 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
   const startTimeRef = useRef<number>(0)
   const pausedDurationRef = useRef<number>(0)
   const sonioxServiceRef = useRef<SonioxTranscriptionService | null>(null)
+  const accumulatedSegmentsRef = useRef<Array<{speaker: number | null; text: string}>>([])
+  const finalTranscriptionRef = useRef<string>('')
 
-  // Initialize Soniox service on mount
+  // Initialize Soniox service on mount (client-side only)
   useEffect(() => {
-    const service = createSonioxService()
-    if (service) {
-      sonioxServiceRef.current = service
-    } else {
-      setTranscriptionError('Soniox API key not configured. Please set NEXT_PUBLIC_SONIOX_API_KEY in your .env file')
+    // Only initialize on client side
+    if (typeof window !== 'undefined') {
+      const service = createSonioxService()
+      if (service) {
+        sonioxServiceRef.current = service
+      } else if (!process.env.NEXT_PUBLIC_SONIOX_API_KEY) {
+        setTranscriptionError('Soniox API key not configured. Please set NEXT_PUBLIC_SONIOX_API_KEY in your .env file')
+      }
     }
 
     return () => {
@@ -108,6 +116,9 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
       setTranscriptionError(null)
       setLiveTranscription('')
       setIsTranscribing(false)
+      // Reset accumulated transcription
+      accumulatedSegmentsRef.current = []
+      finalTranscriptionRef.current = ''
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
@@ -179,28 +190,79 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
       // Start Soniox transcription if available
       if (sonioxServiceRef.current) {
         setIsTranscribing(true)
+        
+        let lastConfirmedText = '' // Track the last confirmed full text
+        let allSegmentsMap = new Map() // Use Map to accumulate unique segments
+        
         await sonioxServiceRef.current.startRecording(
-          // On partial result
+          // On partial result - may contain revisions or partial updates
           (result: TranscriptionResult) => {
+            // Show current partial as live transcription
             setLiveTranscription(result.text)
-            if (currentRecording) {
-              setCurrentRecording(prev => prev ? {
+            
+            // Strategy: Only update if we have MORE content than before
+            // This prevents losing content when Soniox sends partial revisions
+            if (result.text && result.text.length > lastConfirmedText.length) {
+              finalTranscriptionRef.current = result.text
+              lastConfirmedText = result.text
+            }
+            
+            // Accumulate speaker segments by speaker
+            if (result.speakerSegments && result.speakerSegments.length > 0) {
+              result.speakerSegments.forEach(segment => {
+                const key = `speaker-${segment.speaker}`
+                const existing = allSegmentsMap.get(key)
+                // Keep the longer text for each speaker
+                if (!existing || segment.text.length > existing.text.length) {
+                  allSegmentsMap.set(key, segment)
+                }
+              })
+              accumulatedSegmentsRef.current = Array.from(allSegmentsMap.values())
+            }
+            
+            // Update current recording with the best data we have
+            setCurrentRecording(prev => {
+              const bestTranscription = finalTranscriptionRef.current || result.text
+              return prev ? {
                 ...prev,
                 liveTranscription: result.text,
-                speakerSegments: result.speakerSegments
-              } : null)
-            }
+                transcription: bestTranscription,
+                speakerSegments: accumulatedSegmentsRef.current.length > 0 
+                  ? accumulatedSegmentsRef.current 
+                  : result.speakerSegments || prev.speakerSegments
+              } : null
+            })
           },
-          // On final result
+          // On finished - streaming ended, keep accumulated transcription
           (result: TranscriptionResult) => {
-            if (currentRecording) {
-              setCurrentRecording(prev => prev ? {
-                ...prev,
-                transcription: result.text,
-                speakerSegments: result.speakerSegments,
-                liveTranscription: ''
-              } : null)
+            // Don't overwrite with empty final result!
+            if (result.text && result.text.trim().length > 0) {
+              // Only update if final has actual content
+              if (result.text.length > finalTranscriptionRef.current.length) {
+                finalTranscriptionRef.current = result.text
+              }
             }
+            
+            // Final segments update
+            if (result.speakerSegments && result.speakerSegments.length > 0) {
+              // Only update if we get actual segments
+              result.speakerSegments.forEach(segment => {
+                const key = `speaker-${segment.speaker}`
+                allSegmentsMap.set(key, segment)
+              })
+              accumulatedSegmentsRef.current = Array.from(allSegmentsMap.values())
+            }
+            
+            // Set final transcription with what we've accumulated
+            setCurrentRecording(prev => {
+              return prev ? {
+                ...prev,
+                transcription: finalTranscriptionRef.current,
+                speakerSegments: accumulatedSegmentsRef.current,
+                liveTranscription: ''
+              } : null
+            })
+            
             setLiveTranscription('')
             setIsTranscribing(false)
           },
@@ -240,17 +302,23 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
       }
 
       if (currentRecording) {
+        // Make sure we have the final accumulated transcription
         const finalRecording = {
           ...currentRecording,
           duration,
-          isProcessing: true
+          isProcessing: true,
+          transcription: finalTranscriptionRef.current || currentRecording.transcription,
+          speakerSegments: accumulatedSegmentsRef.current.length > 0 
+            ? accumulatedSegmentsRef.current 
+            : currentRecording.speakerSegments
         }
+        
         setCurrentRecording(finalRecording)
         
         // Simulate processing delay
         setTimeout(() => {
           processRecording(finalRecording)
-        }, 2000)
+        }, PROCESSING_DELAY_MS)
       }
 
       pausedDurationRef.current = 0
@@ -276,19 +344,22 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
   }, [isRecording, isPaused])
 
   const processRecording = useCallback(async (recording: MedicalRecording) => {
-    // Simulate AI processing
-    await new Promise(resolve => setTimeout(resolve, 3000))
-    
+    // Keep the real transcription from Soniox, just mark as processed
     const processedRecording: MedicalRecording = {
       ...recording,
-      transcription: "Patient presents with persistent lower back pain for 3 days. Pain started after beginning new exercise routine at gym during Pilates class. Patient heard popping sound and experienced immediate severe pain. Was barely able to drive home, had to crawl to front door due to pain severity. Pain is described as sharp and stabbing, limiting mobility significantly.",
-      medicalNotes: {
-        subjective: "Chief Complaint: Jen presents today for persistent severe lower back pain. History: Patient reports onset of lower back pain 3 days ago while attending new gym. Pain began during Pilates class when patient heard audible 'pop' in back. Severity of pain required crawling to enter home. Patient describes pain as sharp and stabbing.",
-        objective: "Patient ambulating with visible discomfort. Range of motion testing limited by pain. Vital signs within normal limits.",
-        assessment: "Acute lumbar strain, likely related to new exercise activity. Rule out disc injury given mechanism and severity.",
-        plan: "1. NSAIDs for pain management 2. Activity modification - avoid aggravating movements 3. Follow-up in 1 week 4. Physical therapy referral if no improvement 5. Consider imaging if symptoms persist"
-      },
       isProcessing: false
+    }
+
+    // Only generate medical notes if we have a transcription
+    if (recording.transcription) {
+      // In a real app, this would call an AI service to generate SOAP notes
+      // For now, we'll just mark it as processed
+      processedRecording.medicalNotes = {
+        subjective: "[Medical notes would be generated from the transcription]",
+        objective: "[Objective findings would be extracted]",
+        assessment: "[Assessment would be derived from the conversation]",
+        plan: "[Treatment plan would be suggested based on discussion]"
+      }
     }
 
     setCurrentRecording(processedRecording)

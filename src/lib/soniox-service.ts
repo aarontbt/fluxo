@@ -1,4 +1,8 @@
-import { RecordTranscribe } from '@soniox/speech-to-text-web';
+// Dynamic import to avoid SSR issues
+let RecordTranscribe: any = null;
+if (typeof window !== 'undefined') {
+  RecordTranscribe = require('@soniox/speech-to-text-web').RecordTranscribe;
+}
 
 export interface SpeakerSegment {
   speaker: number | null;
@@ -89,6 +93,11 @@ export class SonioxTranscriptionService {
       throw new Error('Already recording');
     }
 
+    if (typeof window === 'undefined' || !RecordTranscribe) {
+      onError?.('Soniox can only be used in the browser');
+      return;
+    }
+
     try {
       this.recordTranscribe = new RecordTranscribe({
         apiKey: this.config.apiKey,
@@ -106,9 +115,16 @@ export class SonioxTranscriptionService {
         },
 
         onPartialResult: (result) => {
-          const tokens = result.tokens || [];
-          const speakerSegments = this.processSpeakerTokens(tokens);
-          const formattedText = this.formatSpeakerText(speakerSegments);
+          const tokens = result?.tokens || [];
+          const text = result?.text || '';
+          
+          let speakerSegments: Array<{speaker: number | null; text: string}> = [];
+          let formattedText = text;
+          
+          if (tokens.length > 0) {
+            speakerSegments = this.processSpeakerTokens(tokens);
+            formattedText = this.formatSpeakerText(speakerSegments);
+          }
 
           const transcriptionResult: TranscriptionResult = {
             text: formattedText,
@@ -121,9 +137,16 @@ export class SonioxTranscriptionService {
         },
 
         onFinished: (result: any) => {
-          const tokens = result.tokens || [];
-          const speakerSegments = this.processSpeakerTokens(tokens);
-          const formattedText = this.formatSpeakerText(speakerSegments);
+          const tokens = result?.tokens || [];
+          const text = result?.text || '';
+          
+          let speakerSegments: Array<{speaker: number | null; text: string}> = [];
+          let formattedText = text;
+          
+          if (tokens.length > 0) {
+            speakerSegments = this.processSpeakerTokens(tokens);
+            formattedText = this.formatSpeakerText(speakerSegments);
+          }
 
           const transcriptionResult: TranscriptionResult = {
             text: formattedText,
@@ -173,6 +196,11 @@ export class SonioxTranscriptionService {
 
 // Utility function to create a service instance
 export function createSonioxService(): SonioxTranscriptionService | null {
+  // Only create service in browser environment
+  if (typeof window === 'undefined') {
+    return null;
+  }
+  
   const apiKey = process.env.NEXT_PUBLIC_SONIOX_API_KEY;
   
   if (!SonioxTranscriptionService.validateApiKey(apiKey)) {
