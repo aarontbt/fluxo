@@ -34,7 +34,7 @@ export function EnhancedRecordingInterface({
   onResumeRecording,
 }: EnhancedRecordingInterfaceProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const animationFrameRef = useRef<number>()
+  const animationFrameRef = useRef<number | null>(null)
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)

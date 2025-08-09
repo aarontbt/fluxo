@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useCallback, useEffect } from 'react'
+import { createSonioxService, SonioxTranscriptionService, TranscriptionResult } from '@/lib/soniox-service'
 
 interface MedicalRecording {
   id: string
@@ -10,6 +11,11 @@ interface MedicalRecording {
   duration: number
   audioBlob?: Blob
   transcription?: string
+  liveTranscription?: string
+  speakerSegments?: Array<{
+    speaker: number | null
+    text: string
+  }>
   medicalNotes?: {
     subjective: string
     objective: string
@@ -26,6 +32,9 @@ interface UseMedicalRecordingReturn {
   audioLevel: number
   currentRecording: MedicalRecording | null
   recordings: MedicalRecording[]
+  liveTranscription: string
+  transcriptionError: string | null
+  isTranscribing: boolean
   startRecording: (patientName: string) => Promise<void>
   stopRecording: () => Promise<void>
   pauseRecording: () => void
@@ -40,6 +49,9 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
   const [duration, setDuration] = useState(0)
   const [audioLevel, setAudioLevel] = useState(0)
   const [currentRecording, setCurrentRecording] = useState<MedicalRecording | null>(null)
+  const [liveTranscription, setLiveTranscription] = useState('')
+  const [transcriptionError, setTranscriptionError] = useState<string | null>(null)
+  const [isTranscribing, setIsTranscribing] = useState(false)
   const [recordings, setRecordings] = useState<MedicalRecording[]>([
     {
       id: '1',
@@ -72,9 +84,30 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const startTimeRef = useRef<number>(0)
   const pausedDurationRef = useRef<number>(0)
+  const sonioxServiceRef = useRef<SonioxTranscriptionService | null>(null)
+
+  // Initialize Soniox service on mount
+  useEffect(() => {
+    const service = createSonioxService()
+    if (service) {
+      sonioxServiceRef.current = service
+    } else {
+      setTranscriptionError('Soniox API key not configured. Please set NEXT_PUBLIC_SONIOX_API_KEY in your .env file')
+    }
+
+    return () => {
+      // Cleanup on unmount
+      if (sonioxServiceRef.current) {
+        sonioxServiceRef.current.stopRecording()
+      }
+    }
+  }, [])
 
   const startRecording = useCallback(async (patientName: string) => {
     try {
+      setTranscriptionError(null)
+      setLiveTranscription('')
+      setIsTranscribing(false)
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
@@ -143,8 +176,45 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
       }
       updateAudioLevel()
 
+      // Start Soniox transcription if available
+      if (sonioxServiceRef.current) {
+        setIsTranscribing(true)
+        await sonioxServiceRef.current.startRecording(
+          // On partial result
+          (result: TranscriptionResult) => {
+            setLiveTranscription(result.text)
+            if (currentRecording) {
+              setCurrentRecording(prev => prev ? {
+                ...prev,
+                liveTranscription: result.text,
+                speakerSegments: result.speakerSegments
+              } : null)
+            }
+          },
+          // On final result
+          (result: TranscriptionResult) => {
+            if (currentRecording) {
+              setCurrentRecording(prev => prev ? {
+                ...prev,
+                transcription: result.text,
+                speakerSegments: result.speakerSegments,
+                liveTranscription: ''
+              } : null)
+            }
+            setLiveTranscription('')
+            setIsTranscribing(false)
+          },
+          // On error
+          (errorMessage: string) => {
+            setTranscriptionError(errorMessage)
+            setIsTranscribing(false)
+          }
+        )
+      }
+
     } catch (error) {
       console.error('Error starting recording:', error)
+      setTranscriptionError(`Failed to start recording: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }, [currentRecording, isRecording, isPaused])
 
@@ -154,6 +224,12 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
       setIsRecording(false)
       setIsPaused(false)
       setAudioLevel(0)
+
+      // Stop Soniox transcription
+      if (sonioxServiceRef.current) {
+        await sonioxServiceRef.current.stopRecording()
+        setIsTranscribing(false)
+      }
 
       if (durationIntervalRef.current) {
         clearInterval(durationIntervalRef.current)
@@ -238,6 +314,9 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
     audioLevel,
     currentRecording,
     recordings,
+    liveTranscription,
+    transcriptionError,
+    isTranscribing,
     startRecording,
     stopRecording,
     pauseRecording,
