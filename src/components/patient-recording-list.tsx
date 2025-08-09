@@ -1,10 +1,10 @@
 "use client"
 
 import { useState } from 'react'
-import { ChevronLeft, Clock, Plus } from 'lucide-react'
+import { Clock, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { motion } from 'framer-motion'
+import { SparklesText } from '@/components/ui/sparkles-text'
 
 interface MedicalRecording {
   id: string
@@ -32,13 +32,13 @@ interface PatientRecordingListProps {
   onStartNewRecording: () => void
 }
 
-export function PatientRecordingList({ 
-  patientName, 
-  patientImage, 
+export function PatientRecordingList({
+  patientName,
+  patientImage,
   recordings,
   currentRecording,
-  onSelectRecording, 
-  onStartNewRecording 
+  onSelectRecording,
+  onStartNewRecording
 }: PatientRecordingListProps) {
   const [selectedRecording, setSelectedRecording] = useState<string | null>(null)
 
@@ -56,23 +56,14 @@ export function PatientRecordingList({
   return (
     <div className="w-80 bg-white border-r border-gray-200 flex flex-col h-full">
       {/* Header */}
-      <div className="p-4 border-b border-gray-100">
-        <div className="flex items-center gap-3 mb-4">
-          <Button variant="ghost" size="icon" className="h-8 w-8">
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-        </div>
-        
-        <div className="flex items-center gap-3 mb-6">
-          <Avatar className="h-12 w-12">
-            <AvatarImage src={patientImage} alt={patientName} />
-            <AvatarFallback className="bg-blue-100 text-blue-600">
-              {patientName.split(' ').map(n => n[0]).join('')}
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <h2 className="font-semibold text-gray-900">{patientName}</h2>
-          </div>
+      <div className="p-4">
+        <div className="mb-6">
+          <SparklesText
+            text="Fluxo Scribe"
+            className="text-2xl"
+            sparklesCount={8}
+            align="left"
+          />
         </div>
 
         <h3 className="text-blue-600 font-medium mb-4">Recordings</h3>
@@ -100,7 +91,7 @@ export function PatientRecordingList({
             </div>
           </motion.div>
         )}
-        
+
         {/* Previous Recordings */}
         {recordings.map((recording) => (
           <motion.div
@@ -134,7 +125,7 @@ export function PatientRecordingList({
             )}
           </motion.div>
         ))}
-        
+
         {recordings.length === 0 && !currentRecording && (
           <div className="p-8 text-center text-gray-400">
             <div className="text-2xl mb-2">🎤</div>
@@ -146,7 +137,7 @@ export function PatientRecordingList({
 
       {/* Bottom Actions */}
       <div className="p-4 border-t border-gray-100">
-        <Button 
+        <Button
           onClick={onStartNewRecording}
           className="w-full bg-blue-600 hover:bg-blue-700 text-white"
         >
