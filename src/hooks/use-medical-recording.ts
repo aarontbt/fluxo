@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { createSonioxService, SonioxTranscriptionService, TranscriptionResult } from '@/lib/soniox-service'
+import { sendToN8n } from '@/lib/n8n-service'
 
 // Constants
 export const PROCESSING_DELAY_MS = 2000 // 2 seconds for processing
@@ -701,6 +702,20 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
 
     setCurrentRecording(processedRecording)
     setRecordings(prev => [processedRecording, ...prev])
+
+    // Send transcription and medical notes to n8n endpoint
+    if (processedRecording.transcription) {
+      try {
+        await sendToN8n({
+          transcription: processedRecording.transcription,
+          sessionNotes: processedRecording.sessionNotes,
+          medicalNotes: processedRecording.medicalNotes
+        })
+      } catch (error) {
+        console.error('Failed to send data to n8n:', error)
+        // Continue with normal processing even if n8n fails
+      }
+    }
   }, [])
 
   const saveRecording = useCallback((recording: MedicalRecording) => {
