@@ -1,6 +1,10 @@
 "use client"
 
 import { useState, useRef, useCallback, useEffect } from 'react'
+import { createSonioxService, SonioxTranscriptionService, TranscriptionResult } from '@/lib/soniox-service'
+
+// Constants
+export const PROCESSING_DELAY_MS = 2000 // 2 seconds for processing
 
 interface MedicalRecording {
   id: string
@@ -14,6 +18,11 @@ interface MedicalRecording {
     timestamp: string
     note: string
   }[]
+  liveTranscription?: string
+  speakerSegments?: Array<{
+    speaker: number | null
+    text: string
+  }>
   medicalNotes?: {
     subjective: {
       chiefComplaint: string
@@ -42,6 +51,9 @@ interface UseMedicalRecordingReturn {
   audioLevel: number
   currentRecording: MedicalRecording | null
   recordings: MedicalRecording[]
+  liveTranscription: string
+  transcriptionError: string | null
+  isTranscribing: boolean
   startRecording: (patientName: string) => Promise<void>
   stopRecording: (sessionNotes?: {timestamp: string, note: string}[]) => Promise<void>
   pauseRecording: () => void
@@ -56,6 +68,9 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
   const [duration, setDuration] = useState(0)
   const [audioLevel, setAudioLevel] = useState(0)
   const [currentRecording, setCurrentRecording] = useState<MedicalRecording | null>(null)
+  const [liveTranscription, setLiveTranscription] = useState('')
+  const [transcriptionError, setTranscriptionError] = useState<string | null>(null)
+  const [isTranscribing, setIsTranscribing] = useState(false)
   const [recordings, setRecordings] = useState<MedicalRecording[]>([
     {
       id: '1',
@@ -110,9 +125,45 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const startTimeRef = useRef<number>(0)
   const pausedDurationRef = useRef<number>(0)
+  const sonioxServiceRef = useRef<SonioxTranscriptionService | null>(null)
+  const accumulatedSegmentsRef = useRef<Array<{speaker: number | null; text: string}>>([])
+  const finalTranscriptionRef = useRef<string>('')
+  
+  // Token-based accumulation - like Soniox playground
+  const finalTokensRef = useRef<Array<{text: string; speaker?: string}>>([])
+  const lastReceivedTextRef = useRef<string>('')
+
+  // Initialize Soniox service on mount (client-side only)
+  useEffect(() => {
+    // Only initialize on client side
+    if (typeof window !== 'undefined') {
+      const service = createSonioxService()
+      if (service) {
+        sonioxServiceRef.current = service
+      } else if (!process.env.NEXT_PUBLIC_SONIOX_API_KEY) {
+        setTranscriptionError('Soniox API key not configured. Please set NEXT_PUBLIC_SONIOX_API_KEY in your .env file')
+      }
+    }
+
+    return () => {
+      // Cleanup on unmount
+      if (sonioxServiceRef.current) {
+        sonioxServiceRef.current.stopRecording()
+      }
+    }
+  }, [])
 
   const startRecording = useCallback(async (patientName: string) => {
     try {
+      setTranscriptionError(null)
+      setLiveTranscription('')
+      setIsTranscribing(false)
+      // Reset accumulated transcription
+      accumulatedSegmentsRef.current = []
+      finalTranscriptionRef.current = ''
+      // Reset token-based tracking
+      finalTokensRef.current = []
+      lastReceivedTextRef.current = ''
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
@@ -181,17 +232,276 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
       }
       updateAudioLevel()
 
+      // Start Soniox transcription if available
+      if (sonioxServiceRef.current) {
+        console.log('🚀 STARTING SONIOX TRANSCRIPTION')
+        setIsTranscribing(true)
+        
+        let allSegmentsMap = new Map() // Use Map to accumulate unique segments
+        
+        await sonioxServiceRef.current.startRecording(
+          // On partial result - may contain revisions or partial updates
+          (result: TranscriptionResult) => {
+            console.log('🔵 PARTIAL RESULT:', {
+              text: result.text,
+              textLength: result.text.length,
+              tokensCount: result.tokens?.length || 0,
+              finalTokensCount: finalTokensRef.current.length
+            })
+            
+            // Token-based accumulation (like Soniox playground)
+            if (result.tokens && result.tokens.length > 0) {
+              // Separate final and non-final tokens
+              const newFinalTokens: Array<{text: string; speaker?: string}> = []
+              let nonFinalText = ''
+              
+              for (const token of result.tokens) {
+                if (token.is_final) {
+                  newFinalTokens.push({
+                    text: token.text,
+                    speaker: token.speaker
+                  })
+                } else {
+                  nonFinalText += token.text
+                }
+              }
+              
+              // Append new final tokens to our permanent collection
+              if (newFinalTokens.length > 0) {
+                finalTokensRef.current.push(...newFinalTokens)
+                console.log('✅ NEW FINAL TOKENS:', {
+                  count: newFinalTokens.length,
+                  totalFinal: finalTokensRef.current.length,
+                  sample: newFinalTokens.slice(0, 3).map(t => t.text).join('')
+                })
+              }
+              
+              // Build complete transcription from final tokens + current non-final
+              const finalText = finalTokensRef.current.map(t => t.text).join('')
+              const completeText = finalText + nonFinalText
+              
+              // Format with speaker labels if available
+              let formattedText = completeText
+              if (finalTokensRef.current.some(t => t.speaker)) {
+                // Group by speaker for formatting
+                const segments: Array<{speaker: string | undefined; text: string}> = []
+                let currentSpeaker: string | undefined = undefined
+                let currentText = ''
+                
+                for (const token of finalTokensRef.current) {
+                  if (token.speaker !== currentSpeaker && currentText) {
+                    segments.push({ speaker: currentSpeaker, text: currentText })
+                    currentText = ''
+                  }
+                  currentSpeaker = token.speaker
+                  currentText += token.text
+                }
+                if (currentText) {
+                  segments.push({ speaker: currentSpeaker, text: currentText })
+                }
+                if (nonFinalText) {
+                  segments.push({ speaker: undefined, text: nonFinalText })
+                }
+                
+                formattedText = segments.map(s => 
+                  s.speaker ? `[Speaker ${s.speaker}] ${s.text}` : s.text
+                ).join(' ')
+              }
+              
+              finalTranscriptionRef.current = formattedText
+              setLiveTranscription(formattedText)
+              
+              console.log('📝 TOKEN-BASED TRANSCRIPTION:', {
+                finalTokens: finalTokensRef.current.length,
+                nonFinalLength: nonFinalText.length,
+                totalLength: formattedText.length,
+                preview: formattedText.substring(0, 100) + '...'
+              })
+            } else {
+              // Fallback to text if no tokens
+              setLiveTranscription(result.text)
+              if (!finalTokensRef.current.length) {
+                finalTranscriptionRef.current = result.text
+              }
+            }
+            
+            lastReceivedTextRef.current = result.text
+            
+            // Accumulate speaker segments by speaker
+            if (result.speakerSegments && result.speakerSegments.length > 0) {
+              console.log('🎤 SPEAKER SEGMENTS:', result.speakerSegments)
+              result.speakerSegments.forEach(segment => {
+                const key = `speaker-${segment.speaker}`
+                const existing = allSegmentsMap.get(key)
+                // Keep the longer text for each speaker
+                if (!existing || segment.text.length > existing.text.length) {
+                  allSegmentsMap.set(key, segment)
+                }
+              })
+              accumulatedSegmentsRef.current = Array.from(allSegmentsMap.values())
+            }
+            
+            // Update current recording with the best data we have
+            setCurrentRecording(prev => {
+              const bestTranscription = finalTranscriptionRef.current || result.text
+              console.log('📝 UPDATING RECORDING:', {
+                live: result.text?.substring(0, 50) + '...',
+                best: bestTranscription?.substring(0, 50) + '...',
+                finalRef: finalTranscriptionRef.current?.substring(0, 50) + '...'
+              })
+              return prev ? {
+                ...prev,
+                liveTranscription: result.text,
+                transcription: bestTranscription,
+                speakerSegments: accumulatedSegmentsRef.current.length > 0 
+                  ? accumulatedSegmentsRef.current 
+                  : result.speakerSegments || prev.speakerSegments
+              } : null
+            })
+          },
+          // On finished - streaming ended, keep accumulated transcription
+          (result: TranscriptionResult) => {
+            console.log('🟢 FINAL RESULT:', {
+              text: result.text,
+              textLength: result.text?.length || 0,
+              speakerSegments: result.speakerSegments?.length || 0,
+              finalTokensCount: finalTokensRef.current.length
+            })
+            
+            // Process any remaining tokens if provided
+            if (result.tokens && result.tokens.length > 0) {
+              // All tokens should be final now
+              const remainingFinalTokens = result.tokens
+                .filter(t => t.is_final && !finalTokensRef.current.some(ft => ft.text === t.text))
+                .map(t => ({ text: t.text, speaker: t.speaker }))
+              
+              if (remainingFinalTokens.length > 0) {
+                finalTokensRef.current.push(...remainingFinalTokens)
+                console.log('✅ FINAL TOKENS ADDED:', remainingFinalTokens.length)
+              }
+            }
+            
+            // Build final transcription from all final tokens with proper speaker formatting
+            let bestTranscription = ''
+            
+            if (finalTokensRef.current.length > 0) {
+              // Group tokens by speaker for proper formatting
+              const segments: Array<{speaker: string | undefined; text: string}> = []
+              let currentSpeaker: string | undefined = undefined
+              let currentText = ''
+              
+              for (const token of finalTokensRef.current) {
+                if (token.speaker !== currentSpeaker && currentText) {
+                  segments.push({ speaker: currentSpeaker, text: currentText.trim() })
+                  currentText = ''
+                }
+                currentSpeaker = token.speaker
+                currentText += token.text
+              }
+              if (currentText) {
+                segments.push({ speaker: currentSpeaker, text: currentText.trim() })
+              }
+              
+              // Format with speaker labels
+              bestTranscription = segments.map(s => 
+                s.speaker ? `[Speaker ${s.speaker}] ${s.text}` : s.text
+              ).join('\n')
+            } else {
+              bestTranscription = result.text
+            }
+            
+            // Update finalTranscriptionRef with the complete formatted text
+            finalTranscriptionRef.current = bestTranscription
+            
+            console.log('📊 FINAL TRANSCRIPTION:', {
+              finalTokensCount: finalTokensRef.current.length,
+              resultLength: result.text?.length || 0,
+              using: finalTokensRef.current.length > 0 ? 'tokens' : 'text',
+              preview: bestTranscription?.substring(0, 100) + '...'
+            })
+            
+            // Final segments update for speaker segments display
+            if (finalTokensRef.current.length > 0) {
+              // Build speaker segments from our final tokens
+              const speakerSegments: Array<{speaker: number | null; text: string}> = []
+              let currentSpeaker: string | undefined = undefined
+              let currentText = ''
+              
+              for (const token of finalTokensRef.current) {
+                if (token.speaker !== currentSpeaker && currentText) {
+                  speakerSegments.push({ 
+                    speaker: currentSpeaker ? parseInt(currentSpeaker) : null, 
+                    text: currentText.trim() 
+                  })
+                  currentText = ''
+                }
+                currentSpeaker = token.speaker
+                currentText += token.text
+              }
+              if (currentText) {
+                speakerSegments.push({ 
+                  speaker: currentSpeaker ? parseInt(currentSpeaker) : null, 
+                  text: currentText.trim() 
+                })
+              }
+              
+              accumulatedSegmentsRef.current = speakerSegments
+            } else if (result.speakerSegments && result.speakerSegments.length > 0) {
+              console.log('🎤 FINAL SPEAKER SEGMENTS:', result.speakerSegments)
+              result.speakerSegments.forEach(segment => {
+                const key = `speaker-${segment.speaker}`
+                allSegmentsMap.set(key, segment)
+              })
+              accumulatedSegmentsRef.current = Array.from(allSegmentsMap.values())
+            }
+            
+            // Set final transcription with what we've accumulated
+            console.log('📄 FINAL TRANSCRIPTION SAVED:', {
+              text: bestTranscription,
+              segments: accumulatedSegmentsRef.current.length,
+              length: bestTranscription?.length || 0
+            })
+            
+            setCurrentRecording(prev => {
+              return prev ? {
+                ...prev,
+                transcription: bestTranscription,
+                speakerSegments: accumulatedSegmentsRef.current,
+                liveTranscription: ''
+              } : null
+            })
+            
+            setLiveTranscription('')
+            setIsTranscribing(false)
+          },
+          // On error
+          (errorMessage: string) => {
+            setTranscriptionError(errorMessage)
+            setIsTranscribing(false)
+          }
+        )
+      }
+
     } catch (error) {
       console.error('Error starting recording:', error)
+      setTranscriptionError(`Failed to start recording: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }, [currentRecording, isRecording, isPaused])
 
   const stopRecording = useCallback(async (sessionNotes?: {timestamp: string, note: string}[]) => {
     if (mediaRecorderRef.current && isRecording) {
+      console.log('🛑 STOPPING RECORDING')
       mediaRecorderRef.current.stop()
       setIsRecording(false)
       setIsPaused(false)
       setAudioLevel(0)
+
+      // Stop Soniox transcription
+      if (sonioxServiceRef.current) {
+        console.log('🛑 STOPPING SONIOX TRANSCRIPTION')
+        await sonioxServiceRef.current.stopRecording()
+        setIsTranscribing(false)
+      }
 
       if (durationIntervalRef.current) {
         clearInterval(durationIntervalRef.current)
@@ -202,18 +512,24 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
       }
 
       if (currentRecording) {
+        // Make sure we have the final accumulated transcription
         const finalRecording = {
           ...currentRecording,
           duration,
           sessionNotes,
-          isProcessing: true
+          isProcessing: true,
+          transcription: finalTranscriptionRef.current || currentRecording.transcription,
+          speakerSegments: accumulatedSegmentsRef.current.length > 0 
+            ? accumulatedSegmentsRef.current 
+            : currentRecording.speakerSegments
         }
+        
         setCurrentRecording(finalRecording)
         
         // Simulate processing delay
         setTimeout(() => {
           processRecording(finalRecording)
-        }, 2000)
+        }, PROCESSING_DELAY_MS)
       }
 
       pausedDurationRef.current = 0
@@ -239,31 +555,34 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
   }, [isRecording, isPaused])
 
   const processRecording = useCallback(async (recording: MedicalRecording) => {
-    // Simulate AI processing
-    await new Promise(resolve => setTimeout(resolve, 3000))
-    
+    // Keep the real transcription from Soniox, just mark as processed
     const processedRecording: MedicalRecording = {
       ...recording,
-      transcription: "Patient presents with persistent lower back pain for 3 days. Pain started after beginning new exercise routine at gym during Pilates class. Patient heard popping sound and experienced immediate severe pain. Was barely able to drive home, had to crawl to front door due to pain severity. Pain is described as sharp and stabbing, limiting mobility significantly.",
-      medicalNotes: {
+      isProcessing: false
+    }
+
+    // Only generate medical notes if we have a transcription
+    if (recording.transcription) {
+      // In a real app, this would call an AI service to generate SOAP notes
+      // Enhanced medical notes structure with detailed fields
+      processedRecording.medicalNotes = {
         subjective: {
-          chiefComplaint: "Jen presents today for persistent severe lower back pain.",
-          history: "Patient reports onset of lower back pain 3 days ago while attending new gym. Pain began during Pilates class when patient heard audible 'pop' in back. Severity of pain required crawling to enter home. Patient describes pain as sharp and stabbing."
+          chiefComplaint: "[Chief complaint would be extracted from transcription]",
+          history: "[Medical history would be derived from the conversation]"
         },
-        objective: "Patient ambulating with visible discomfort. Range of motion testing limited by pain. Vital signs within normal limits.",
-        assessment: "Acute lumbar strain, likely related to new exercise activity. Rule out disc injury given mechanism and severity.",
+        objective: "[Physical examination findings would be documented]",
+        assessment: "[Clinical assessment would be derived from the conversation]",
         plan: {
-          medications: "NSAIDs for pain management",
-          procedures: "Activity modification - avoid aggravating movements", 
-          followUp: "Follow-up in 1 week. Physical therapy referral if no improvement. Consider imaging if symptoms persist"
+          medications: "[Prescribed medications would be listed]",
+          procedures: "[Recommended procedures would be documented]",
+          followUp: "[Follow-up instructions would be provided]"
         },
         ros: {
-          cardiovascular: "chest pain",
-          respiratory: "shortness of breath",
-          musculoskeletal: "back pain"
+          cardiovascular: "[Cardiovascular review would be noted]",
+          respiratory: "[Respiratory review would be documented]",
+          musculoskeletal: "[Musculoskeletal findings would be recorded]"
         }
-      },
-      isProcessing: false
+      }
     }
 
     setCurrentRecording(processedRecording)
@@ -289,6 +608,9 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
     audioLevel,
     currentRecording,
     recordings,
+    liveTranscription,
+    transcriptionError,
+    isTranscribing,
     startRecording,
     stopRecording,
     pauseRecording,

@@ -5,7 +5,7 @@ import { PatientRecordingList } from '@/components/patient-recording-list'
 import { EnhancedRecordingInterface } from '@/components/enhanced-recording-interface'
 import { TranscriptionDisplay } from '@/components/transcription-display'
 import { MobileMedicalInterface } from '@/components/mobile-medical-interface'
-import { useMedicalRecording } from '@/hooks/use-medical-recording'
+import { useMedicalRecording, PROCESSING_DELAY_MS } from '@/hooks/use-medical-recording'
 
 type ViewMode = 'recording' | 'transcription'
 
@@ -17,6 +17,9 @@ export default function Home() {
     audioLevel,
     currentRecording,
     recordings,
+    liveTranscription,
+    transcriptionError,
+    isTranscribing,
     startRecording,
     stopRecording,
     pauseRecording,
@@ -66,7 +69,11 @@ export default function Home() {
     }
 
     await stopRecording(allNotes.length > 0 ? allNotes : undefined)
-    setViewMode('transcription')
+    // Switch to transcription view after processing delay
+    // This gives time for the transcription to be set and processed
+    setTimeout(() => {
+      setViewMode('transcription')
+    }, PROCESSING_DELAY_MS)
   }
 
   const handleAddNote = () => {
@@ -142,14 +149,26 @@ export default function Home() {
           />
         )}
 
-        {/* Right Panel - Medical Notes (hidden when viewing transcription) */}
+        {/* Right Panel - Medical Notes / Live Transcription */}
         {viewMode === 'recording' && (
           <div className="w-80 bg-white border-l border-gray-200 flex flex-col">
-            <div className="p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Medical Notes</h2>
+            <div className="p-6 border-b border-gray-100">
+              <h2 className="text-lg font-semibold text-gray-900 mb-2">Medical Notes</h2>
               <div className="text-sm text-gray-500">
-                {isRecording ? 'Add notes during recording...' : 'Ready to add patient notes'}
+                {isRecording ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                    Recording in progress...
+                  </div>
+                ) : (
+                  'Ready to record patient consultation'
+                )}
               </div>
+              {transcriptionError && (
+                <div className="mt-2 text-xs text-red-600">
+                  {transcriptionError}
+                </div>
+              )}
             </div>
 
             {/* Notes Input Section */}
@@ -169,11 +188,66 @@ export default function Home() {
               </button>
             </div>
 
-            {/* Notes History */}
+            {/* Combined Display Area */}
             <div className="flex-1 p-6 overflow-y-auto">
-              {noteHistory.length > 0 ? (
-                <div className="space-y-3">
-                  <h3 className="text-sm font-medium text-gray-700 mb-3">Session Notes</h3>
+              {/* Empty state when nothing is happening */}
+              {!isRecording && !liveTranscription && !currentRecording?.transcription && noteHistory.length === 0 && (
+                <div className="text-center text-gray-400 mt-12">
+                  <div className="text-lg mb-2">🎤</div>
+                  <div>Start recording to generate medical notes</div>
+                </div>
+              )}
+              
+              {/* Live Transcription */}
+              {(liveTranscription || currentRecording?.liveTranscription) && (
+                <div className="space-y-4 mb-6">
+                  <div className="text-xs font-medium text-blue-600 uppercase tracking-wide">
+                    Live Transcription
+                  </div>
+                  <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                    {liveTranscription || currentRecording?.liveTranscription}
+                  </div>
+                </div>
+              )}
+              
+              {/* Final Transcription with Speaker Segments */}
+              {currentRecording?.transcription && !isRecording && (
+                <div className="space-y-4 mb-6">
+                  <div className="text-xs font-medium text-green-600 uppercase tracking-wide">
+                    Final Transcription
+                  </div>
+                  {currentRecording.speakerSegments && currentRecording.speakerSegments.length > 0 ? (
+                    <div className="space-y-3">
+                      {currentRecording.speakerSegments.map((segment, index) => (
+                        <div 
+                          key={index}
+                          className={`p-3 rounded-lg border-l-4 ${
+                            segment.speaker !== null
+                              ? `bg-blue-50 text-blue-900 border-blue-400`
+                              : 'bg-gray-50 text-gray-800 border-gray-300'
+                          }`}
+                        >
+                          <div className="text-xs font-medium mb-1">
+                            {segment.speaker !== null ? `Speaker ${segment.speaker}` : 'Unknown Speaker'}
+                          </div>
+                          <div className="text-sm leading-relaxed">
+                            {segment.text}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                      {currentRecording.transcription}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Session Notes */}
+              {noteHistory.length > 0 && (
+                <div className="space-y-3 mb-6">
+                  <div className="text-xs font-medium text-gray-600 uppercase tracking-wide">Session Notes</div>
                   {noteHistory.map((note, index) => (
                     <div key={index} className="bg-gray-50 p-3 rounded-lg group hover:bg-gray-100 transition-colors">
                       <div className="flex justify-between items-start">
@@ -194,10 +268,18 @@ export default function Home() {
                     </div>
                   ))}
                 </div>
-              ) : (
-                <div className="text-center text-gray-400 mt-12">
-                  <div className="text-lg mb-2">📝</div>
-                  <div className="text-sm">Your notes will appear here</div>
+              )}
+              
+              {/* Loading indicator */}
+              {isTranscribing && !liveTranscription && (
+                <div className="text-center text-gray-500 mt-8">
+                  <div className="inline-flex items-center gap-2">
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    <span className="text-sm">Initializing transcription...</span>
+                  </div>
                 </div>
               )}
             </div>
