@@ -209,7 +209,7 @@ export function TranscriptionDisplay({
                   >
                     SOAP Notes
                   </button>
-                  {recording.n8nAnalysis && (
+                  {recording.n8nAnalysis && (recording.n8nAnalysis.risk_hypotheses?.length > 0 || recording.n8nAnalysis.red_flags?.length > 0 || recording.n8nAnalysis.next_visit_metrics?.length > 0) && (
                     <button
                       onClick={() => setActiveTab('analysis')}
                       className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
@@ -356,12 +356,45 @@ export function TranscriptionDisplay({
                 </motion.div>
               )}
 
-              {activeTab === 'soap' && recording.medicalNotes && (
+              {activeTab === 'soap' && (recording.medicalNotes || recording.n8nAnalysis) && (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="space-y-6"
                 >
+                  {/* AI Generated SOAP Notes from n8n */}
+                  {recording.n8nAnalysis?.soa_markdown && (
+                    <div className="bg-blue-50 rounded-lg p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-medium text-gray-900">AI Generated SOAP Assessment</h3>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleCopy(recording.n8nAnalysis!.soa_markdown, 'soap-analysis')}
+                          className="flex items-center gap-2"
+                        >
+                          {copiedSection === 'soap-analysis' ? (
+                            <CheckCircle className="w-4 h-4 text-green-600" />
+                          ) : (
+                            <Copy className="w-4 h-4" />
+                          )}
+                          Copy SOAP Notes
+                        </Button>
+                      </div>
+                      <div className="prose prose-sm max-w-none">
+                        <div 
+                          className="whitespace-pre-line text-gray-700 leading-relaxed"
+                          dangerouslySetInnerHTML={{ 
+                            __html: recording.n8nAnalysis.soa_markdown
+                              .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-gray-900">$1</strong>')
+                              .replace(/- /g, '• ')
+                              .replace(/^\d+\./gm, '• ')
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
                   {/* Extracted Entities - Plan Mode */}
                   {planMode && (
                     <div className="bg-blue-50 rounded-lg p-6">
@@ -550,43 +583,16 @@ export function TranscriptionDisplay({
                 </motion.div>
               )}
 
-              {activeTab === 'analysis' && recording.n8nAnalysis && (
+              {activeTab === 'analysis' && recording.n8nAnalysis && (recording.n8nAnalysis.risk_hypotheses?.length > 0 || recording.n8nAnalysis.red_flags?.length > 0 || recording.n8nAnalysis.next_visit_metrics?.length > 0) && (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="space-y-6"
                 >
-                  {/* Medical Summary */}
-                  <div className="bg-blue-50 rounded-lg p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-medium text-gray-900">AI Medical Analysis</h3>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleCopy(recording.n8nAnalysis!.soa_markdown, 'analysis-summary')}
-                        className="flex items-center gap-2"
-                      >
-                        {copiedSection === 'analysis-summary' ? (
-                          <CheckCircle className="w-4 h-4 text-green-600" />
-                        ) : (
-                          <Copy className="w-4 h-4" />
-                        )}
-                        Copy Summary
-                      </Button>
-                    </div>
-                    <div className="prose prose-sm max-w-none">
-                      <div 
-                        className="whitespace-pre-line text-gray-700"
-                        dangerouslySetInnerHTML={{ 
-                          __html: recording.n8nAnalysis.soa_markdown
-                            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                            .replace(/- /g, '• ')
-                        }}
-                      />
-                    </div>
-                  </div>
+
 
                   {/* Risk Hypotheses */}
+                  {recording.n8nAnalysis.risk_hypotheses && recording.n8nAnalysis.risk_hypotheses.length > 0 && (
                   <div className="bg-amber-50 rounded-lg p-6">
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="text-lg font-medium text-gray-900">Risk Hypotheses</h3>
@@ -614,10 +620,12 @@ export function TranscriptionDisplay({
                         </div>
                       ))}
                     </div>
-                  </div>
+                    </div>
+                   )}
 
-                  {/* Red Flags */}
-                  <div className="bg-red-50 rounded-lg p-6">
+                    {/* Red Flags */}
+                   {recording.n8nAnalysis.red_flags && recording.n8nAnalysis.red_flags.length > 0 && (
+                   <div className="bg-red-50 rounded-lg p-6">
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="text-lg font-medium text-gray-900">Red Flags - Monitor Closely</h3>
                       <Button
@@ -642,10 +650,12 @@ export function TranscriptionDisplay({
                         </div>
                       ))}
                     </div>
-                  </div>
+                    </div>
+                   )}
 
-                  {/* Next Visit Metrics */}
-                  <div className="bg-green-50 rounded-lg p-6">
+                    {/* Next Visit Metrics */}
+                   {recording.n8nAnalysis.next_visit_metrics && recording.n8nAnalysis.next_visit_metrics.length > 0 && (
+                   <div className="bg-green-50 rounded-lg p-6">
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="text-lg font-medium text-gray-900">Next Visit Monitoring</h3>
                       <Button
@@ -670,10 +680,11 @@ export function TranscriptionDisplay({
                         </div>
                       ))}
                     </div>
-                  </div>
-                </motion.div>
-              )}
-            </div>
+                    </div>
+                      )}
+                      </motion.div>
+                      )}
+             </div>
 
             {/* Actions */}
             <div className="p-6 border-t border-gray-100">
