@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ChevronDown, Edit3, Trash2, Save, User } from 'lucide-react'
-import { motion } from 'framer-motion'
 
 interface MedicalNotesPanelProps {
   transcriptionText?: string
@@ -11,11 +10,11 @@ interface MedicalNotesPanelProps {
 }
 
 export function MedicalNotesPanel({ 
-  transcriptionText = "", 
+  transcriptionText: _transcriptionText = "", 
   lastSaved = "a minute ago" 
 }: MedicalNotesPanelProps) {
   const [activeTab, setActiveTab] = useState('Note')
-  const [selectedCategory, setSelectedCategory] = useState('')
+  const [_selectedCategory, _setSelectedCategory] = useState('')
 
   const tabs = ['Information', 'Highlights', 'Note']
   

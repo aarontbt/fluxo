@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Loader2, FileText, AlertTriangle, CheckCircle, Clock } from 'lucide-react'
 import { aiTranscriptionService } from '@/lib/ai-transcription'
@@ -32,7 +32,7 @@ export function TranscriptionPanel({ audioBlob, isVisible, onClose }: Transcript
     error: null
   })
 
-  const processAudioRecording = async () => {
+  const processAudioRecording = useCallback(async () => {
     if (!audioBlob) return
 
     setState(prev => ({ ...prev, isTranscribing: true, error: null }))
@@ -59,7 +59,7 @@ export function TranscriptionPanel({ audioBlob, isVisible, onClose }: Transcript
         isTranscribing: false 
       }))
     }
-  }
+  }, [audioBlob])
 
   useEffect(() => {
     if (audioBlob && isVisible) {

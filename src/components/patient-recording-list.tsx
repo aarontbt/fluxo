@@ -49,8 +49,8 @@ interface PatientRecordingListProps {
 }
 
 export function PatientRecordingList({
-  patientName,
-  patientImage,
+  patientName: _patientName,
+  patientImage: _patientImage,
   recordings,
   currentRecording,
   onSelectRecording,

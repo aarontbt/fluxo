@@ -1,6 +1,7 @@
 // Dynamic import to avoid SSR issues
-let RecordTranscribe: any = null;
+let RecordTranscribe: unknown = null;
 if (typeof window !== 'undefined') {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   RecordTranscribe = require('@soniox/speech-to-text-web').RecordTranscribe;
 }
 
@@ -35,7 +36,7 @@ export interface SonioxConfig {
 }
 
 export class SonioxTranscriptionService {
-  private recordTranscribe: RecordTranscribe | null = null;
+  private recordTranscribe: unknown = null;
   private config: SonioxConfig;
   private isRecording = false;
 
@@ -49,6 +50,7 @@ export class SonioxTranscriptionService {
     };
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private processSpeakerTokens(tokens: any[]): SpeakerSegment[] {
     const segments: SpeakerSegment[] = [];
     let currentSpeaker: number | null = null;
@@ -107,11 +109,13 @@ export class SonioxTranscriptionService {
     }
 
     try {
-      this.recordTranscribe = new RecordTranscribe({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      this.recordTranscribe = new (RecordTranscribe as any)({
         apiKey: this.config.apiKey,
       });
 
-      await this.recordTranscribe.start({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (this.recordTranscribe as any).start({
         model: this.config.model || 'stt-rt-preview-v2',
         enableSpeakerDiarization: this.config.enableSpeakerDiarization,
         enableLanguageIdentification: this.config.enableLanguageIdentification,
@@ -122,7 +126,8 @@ export class SonioxTranscriptionService {
           console.log('Soniox recording started');
         },
 
-        onPartialResult: (result) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        onPartialResult: (result: any) => {
           const tokens = result?.tokens || [];
           const text = result?.text || '';
           
@@ -145,6 +150,7 @@ export class SonioxTranscriptionService {
           onPartialResult?.(transcriptionResult);
         },
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         onFinished: (result: any) => {
           const tokens = result?.tokens || [];
           const text = result?.text || '';
@@ -169,7 +175,8 @@ export class SonioxTranscriptionService {
           this.isRecording = false;
         },
 
-        onError: (status, message) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        onError: (status: any, message: any) => {
           console.error('Soniox error:', status, message);
           this.isRecording = false;
           onError?.(`Transcription error: ${message}`);
@@ -188,7 +195,8 @@ export class SonioxTranscriptionService {
     }
 
     try {
-      await this.recordTranscribe.stop();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (this.recordTranscribe as any).stop();
       this.isRecording = false;
     } catch (error) {
       throw new Error(`Failed to stop recording: ${error instanceof Error ? error.message : 'Unknown error'}`);
