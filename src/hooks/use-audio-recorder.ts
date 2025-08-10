@@ -15,7 +15,7 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
   const [isRecording, setIsRecording] = useState(false)
   const [audioLevel, setAudioLevel] = useState(0)
   const [duration, setDuration] = useState(0)
-  
+
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioStreamRef = useRef<MediaStream | null>(null)
   const analyserRef = useRef<AnalyserNode | null>(null)
@@ -31,17 +31,17 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
           autoGainControl: true,
         }
       })
-      
+
       audioStreamRef.current = stream
 
       // Set up audio analysis for visualization
       const audioContext = new AudioContext()
       const analyser = audioContext.createAnalyser()
       const source = audioContext.createMediaStreamSource(stream)
-      
+
       analyser.fftSize = 256
       source.connect(analyser)
-      
+
       audioContextRef.current = audioContext
       analyserRef.current = analyser
 
@@ -66,7 +66,7 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
       }
 
       mediaRecorder.onstop = () => {
-        new Blob(audioChunks, { type: 'audio/wav' })
+        const _audioBlob = new Blob(audioChunks, { type: 'audio/wav' })
         // You can handle the audio blob here (e.g., send to API for transcription)
       }
 
@@ -94,7 +94,7 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
           const audioBlob = new Blob(audioChunks, { type: 'audio/wav' })
           resolve(audioBlob)
         }
-        
+
         mediaRecorderRef.current.stop()
         setIsRecording(false)
         setAudioLevel(0)

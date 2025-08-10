@@ -42,8 +42,8 @@ interface MedicalRecording {
 
 export default function MedicalConsultationPage() {
   const { isRecording, audioLevel, toggleRecording, duration } = useAudioRecorder()
-  const [, setSelectedRecording] = useState<MedicalRecording | null>(null)
-  
+  const [_selectedRecording, setSelectedRecording] = useState<MedicalRecording | null>(null)
+
   const patientInfo = {
     name: "Jen Garcia",
     image: "/api/placeholder/40/40",

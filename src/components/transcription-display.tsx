@@ -209,14 +209,13 @@ export function TranscriptionDisplay({
                   >
                     SOAP Notes
                   </button>
-
                 </div>
-                
+
                 {/* Plan Mode Switch */}
                 <div className="flex items-center space-x-2">
                   <span className="text-sm text-gray-600">Plan Mode</span>
-                  <Switch 
-                    checked={planMode} 
+                  <Switch
+                    checked={planMode}
                     onCheckedChange={setPlanMode}
                     className="data-[state=checked]:bg-red-500"
                   />
@@ -256,7 +255,7 @@ export function TranscriptionDisplay({
                         Copy
                       </Button>
                     </div>
-                    
+
                     {/* Display speaker segments if available */}
                     {recording.speakerSegments && recording.speakerSegments.length > 0 ? (
                       <div className="space-y-3">
@@ -268,12 +267,12 @@ export function TranscriptionDisplay({
                             'bg-orange-50 text-orange-900 border-orange-300',
                             'bg-pink-50 text-pink-900 border-pink-300',
                           ]
-                          const colorClass = segment.speaker !== null 
+                          const colorClass = segment.speaker !== null
                             ? speakerColors[segment.speaker % speakerColors.length]
                             : 'bg-gray-50 text-gray-800 border-gray-300'
-                          
+
                           return (
-                            <div 
+                            <div
                               key={index}
                               className={`p-3 rounded-lg border-l-4 ${colorClass}`}
                             >
@@ -371,9 +370,9 @@ export function TranscriptionDisplay({
                         </Button>
                       </div>
                       <div className="prose prose-sm max-w-none">
-                        <div 
+                        <div
                           className="whitespace-pre-line text-gray-700 leading-relaxed"
-                          dangerouslySetInnerHTML={{ 
+                          dangerouslySetInnerHTML={{
                             __html: recording.n8nAnalysis.soa_markdown
                               .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-gray-900">$1</strong>')
                               .replace(/- /g, '• ')

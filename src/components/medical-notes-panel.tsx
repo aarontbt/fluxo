@@ -9,14 +9,14 @@ interface MedicalNotesPanelProps {
   lastSaved?: string
 }
 
-export function MedicalNotesPanel({ 
-  transcriptionText: _transcriptionText = "", 
-  lastSaved = "a minute ago" 
+export function MedicalNotesPanel({
+  transcriptionText: _transcriptionText = "",
+  lastSaved = "a minute ago"
 }: MedicalNotesPanelProps) {
   const [activeTab, setActiveTab] = useState('Note')
 
   const tabs = ['Information', 'Highlights', 'Note']
-  
+
   const sampleTranscription = `on hypercholesterolemia, hypertension, and worsening heart failure. All right, so let's get started. Let's start with your heart condition. We've been taking the lisinopril ten slash five milligrams once a day. How long have you had`
 
   const medicalSections = {
@@ -26,7 +26,7 @@ export function MedicalNotesPanel({
     },
     ros: {
       cardiovascular: "chest pain",
-      respiratory: "shortness of breath", 
+      respiratory: "shortness of breath",
       musculoskeletal: "back pain"
     },
     plan: {
@@ -44,7 +44,7 @@ export function MedicalNotesPanel({
           <span className="text-xs text-gray-500">Last saved {lastSaved}</span>
           <span className="text-xs font-mono text-gray-600">00:15</span>
         </div>
-        
+
         <div className="flex items-center gap-2 mb-4">
           <Button variant="ghost" size="icon" className="h-6 w-6">
             <Edit3 className="h-3 w-3" />
@@ -82,7 +82,7 @@ export function MedicalNotesPanel({
                 <h3 className="font-semibold text-gray-900">Subjective</h3>
                 <ChevronDown className="h-4 w-4 text-gray-400" />
               </div>
-              
+
               <div className="space-y-3">
                 <div>
                   <p className="text-sm font-medium text-gray-700 mb-1">Chief Complaint</p>
@@ -90,11 +90,11 @@ export function MedicalNotesPanel({
                     {medicalSections.subjective.chiefComplaint}
                   </p>
                 </div>
-                
+
                 <p className="text-sm text-gray-600 leading-relaxed">
                   {medicalSections.subjective.history}
                 </p>
-                
+
                 <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded">
                   <span className="font-medium">Note:</span> Brenda has been taking the lisinopril ten / hydrochlorothiazide 12.5 milligrams once a day.
                 </div>
@@ -107,7 +107,7 @@ export function MedicalNotesPanel({
                 <h3 className="font-semibold text-gray-900">ROS</h3>
                 <ChevronDown className="h-4 w-4 text-gray-400" />
               </div>
-              
+
               <div className="space-y-2">
                 <div>
                   <p className="text-xs text-gray-500 mb-1">Cardiovascular:</p>
@@ -130,7 +130,7 @@ export function MedicalNotesPanel({
                 <h3 className="font-semibold text-gray-900">Plan</h3>
                 <ChevronDown className="h-4 w-4 text-gray-400" />
               </div>
-              
+
               <div className="space-y-3 text-sm text-gray-600 leading-relaxed">
                 <p>{medicalSections.plan.medications}</p>
                 <p>{medicalSections.plan.procedures}</p>
@@ -178,7 +178,7 @@ export function MedicalNotesPanel({
               </Button>
             </div>
           </div>
-          
+
           <div className="relative">
             <select className="w-full p-2 border border-gray-200 rounded text-sm text-gray-600">
               <option>Type or select subcategory</option>

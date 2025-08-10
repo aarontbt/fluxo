@@ -14,19 +14,19 @@ interface N8nAnalysisResponse {
 interface SendToN8nParams {
   transcription: string
   sessionNotes?: { timestamp: string; note: string }[]
-  medicalNotes?: Record<string, unknown>
+  medicalNotes?: any
 }
 
 const N8N_ENDPOINT = 'https://n8n.example.com/webhook/webhook-id'
 const BEARER_TOKEN = 'your-auth-token-here'
 
-export async function sendToN8n({ 
-  transcription, 
-  sessionNotes 
+export async function sendToN8n({
+  transcription,
+  sessionNotes
 }: SendToN8nParams): Promise<N8nAnalysisResponse | null> {
   try {
     // Format session notes as an array of strings
-    const formattedSessionNotes = sessionNotes?.map(note => 
+    const formattedSessionNotes = sessionNotes?.map(note =>
       `[${note.timestamp}] ${note.note}`
     ) || []
 
