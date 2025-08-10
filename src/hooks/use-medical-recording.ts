@@ -237,7 +237,7 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
         console.log('🚀 STARTING SONIOX TRANSCRIPTION')
         setIsTranscribing(true)
         
-        let allSegmentsMap = new Map() // Use Map to accumulate unique segments
+        let allSegments: Array<{speaker: number | null; text: string}> = [] // Preserve chronological segments
         
         await sonioxServiceRef.current.startRecording(
           // On partial result - may contain revisions or partial updates
@@ -246,8 +246,27 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
               text: result.text,
               textLength: result.text.length,
               tokensCount: result.tokens?.length || 0,
-              finalTokensCount: finalTokensRef.current.length
+              finalTokensCount: finalTokensRef.current.length,
+              speakerSegmentsCount: result.speakerSegments?.length || 0,
+              rawSpeakerSegments: result.speakerSegments
             })
+            
+            // Debug speaker data in tokens
+            if (result.tokens && result.tokens.length > 0) {
+              const speakerInfo = result.tokens.map(token => ({
+                text: token.text.substring(0, 10) + '...',
+                speaker: token.speaker,
+                is_final: token.is_final
+              }))
+              console.log('🎤 TOKEN SPEAKERS:', {
+                totalTokens: result.tokens.length,
+                uniqueSpeakers: [...new Set(result.tokens.map(t => t.speaker).filter(s => s !== undefined))],
+                speakerBreakdown: speakerInfo.slice(0, 5) // First 5 tokens
+              })
+            }
+            
+            // Variable to hold live display text for the sidebar
+            let liveFormattedText = ''
             
             // Token-based accumulation (like Soniox playground)
             if (result.tokens && result.tokens.length > 0) {
@@ -272,7 +291,9 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
                 console.log('✅ NEW FINAL TOKENS:', {
                   count: newFinalTokens.length,
                   totalFinal: finalTokensRef.current.length,
-                  sample: newFinalTokens.slice(0, 3).map(t => t.text).join('')
+                  sample: newFinalTokens.slice(0, 3).map(t => t.text).join(''),
+                  speakers: [...new Set(newFinalTokens.map(t => t.speaker).filter(s => s !== undefined))],
+                  allFinalSpeakers: [...new Set(finalTokensRef.current.map(t => t.speaker).filter(s => s !== undefined))]
                 })
               }
               
@@ -308,8 +329,24 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
                 ).join(' ')
               }
               
+              // Store full transcription internally
               finalTranscriptionRef.current = formattedText
-              setLiveTranscription(formattedText)
+              
+              // For live display in sidebar, show only recent content (last ~100 chars of final + non-final)
+              const recentFinalTokens = finalTokensRef.current.slice(-10) // Last 10 final tokens
+              const recentFinalText = recentFinalTokens.map(t => t.text).join('')
+              const liveDisplayText = recentFinalText + nonFinalText
+              
+              // Format the live display with speaker if needed
+              liveFormattedText = liveDisplayText
+              if (recentFinalTokens.some(t => t.speaker)) {
+                const lastSpeaker = recentFinalTokens[recentFinalTokens.length - 1]?.speaker
+                if (lastSpeaker) {
+                  liveFormattedText = `[Speaker ${lastSpeaker}] ${liveDisplayText}`
+                }
+              }
+              
+              setLiveTranscription(liveFormattedText)
               
               console.log('📝 TOKEN-BASED TRANSCRIPTION:', {
                 finalTokens: finalTokensRef.current.length,
@@ -329,30 +366,54 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
             
             // Accumulate speaker segments by speaker
             if (result.speakerSegments && result.speakerSegments.length > 0) {
-              console.log('🎤 SPEAKER SEGMENTS:', result.speakerSegments)
-              result.speakerSegments.forEach(segment => {
-                const key = `speaker-${segment.speaker}`
-                const existing = allSegmentsMap.get(key)
-                // Keep the longer text for each speaker
-                if (!existing || segment.text.length > existing.text.length) {
-                  allSegmentsMap.set(key, segment)
-                }
+              console.log('🎤 SPEAKER SEGMENTS RECEIVED:', {
+                count: result.speakerSegments.length,
+                speakers: result.speakerSegments.map(s => s.speaker),
+                uniqueSpeakers: [...new Set(result.speakerSegments.map(s => s.speaker))],
+                segments: result.speakerSegments.map(s => ({
+                  speaker: s.speaker,
+                  textLength: s.text.length,
+                  textPreview: s.text.substring(0, 50) + '...'
+                }))
               })
-              accumulatedSegmentsRef.current = Array.from(allSegmentsMap.values())
+              
+              // Replace with new segments (Soniox provides complete current state)
+              allSegments = result.speakerSegments.map(segment => ({
+                speaker: segment.speaker,
+                text: segment.text
+              }))
+              
+              console.log('📝 UPDATING ALL SPEAKER SEGMENTS:', {
+                newSegmentCount: allSegments.length,
+                speakers: allSegments.map(s => s.speaker),
+                segmentPreviews: allSegments.map((s, i) => ({
+                  index: i,
+                  speaker: s.speaker,
+                  textPreview: s.text.substring(0, 30) + '...'
+                }))
+              })
+              
+              accumulatedSegmentsRef.current = allSegments
+              
+              console.log('📊 ACCUMULATED SEGMENTS:', {
+                totalSegments: accumulatedSegmentsRef.current.length,
+                speakers: accumulatedSegmentsRef.current.map(s => s.speaker),
+                uniqueSpeakers: [...new Set(accumulatedSegmentsRef.current.map(s => s.speaker))]
+              })
             }
             
             // Update current recording with the best data we have
             setCurrentRecording(prev => {
               const bestTranscription = finalTranscriptionRef.current || result.text
               console.log('📝 UPDATING RECORDING:', {
-                live: result.text?.substring(0, 50) + '...',
+                live: liveFormattedText?.substring(0, 50) + '...',
                 best: bestTranscription?.substring(0, 50) + '...',
                 finalRef: finalTranscriptionRef.current?.substring(0, 50) + '...'
               })
               return prev ? {
                 ...prev,
-                liveTranscription: result.text,
-                transcription: bestTranscription,
+                liveTranscription: liveFormattedText || result.text, // Show only recent content in live
+                transcription: bestTranscription, // Keep full transcription for saved recording
                 speakerSegments: accumulatedSegmentsRef.current.length > 0 
                   ? accumulatedSegmentsRef.current 
                   : result.speakerSegments || prev.speakerSegments
@@ -365,8 +426,23 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
               text: result.text,
               textLength: result.text?.length || 0,
               speakerSegments: result.speakerSegments?.length || 0,
-              finalTokensCount: finalTokensRef.current.length
+              finalTokensCount: finalTokensRef.current.length,
+              finalSpeakerSegments: result.speakerSegments,
+              finalUniqueSpeakers: result.speakerSegments ? [...new Set(result.speakerSegments.map(s => s.speaker))] : []
             })
+            
+            // Debug final tokens speaker data
+            if (result.tokens && result.tokens.length > 0) {
+              console.log('🎤 FINAL TOKEN SPEAKERS:', {
+                totalTokens: result.tokens.length,
+                uniqueSpeakers: [...new Set(result.tokens.map(t => t.speaker).filter(s => s !== undefined))],
+                speakerDistribution: result.tokens.reduce((acc, token) => {
+                  const speaker = token.speaker || 'undefined'
+                  acc[speaker] = (acc[speaker] || 0) + 1
+                  return acc
+                }, {} as Record<string, number>)
+              })
+            }
             
             // Process any remaining tokens if provided
             if (result.tokens && result.tokens.length > 0) {
@@ -427,11 +503,22 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
               let currentSpeaker: string | undefined = undefined
               let currentText = ''
               
+              console.log('🔧 BUILDING FINAL SPEAKER SEGMENTS FROM TOKENS:', {
+                totalTokens: finalTokensRef.current.length,
+                uniqueSpeakers: [...new Set(finalTokensRef.current.map(t => t.speaker).filter(s => s !== undefined))]
+              })
+              
               for (const token of finalTokensRef.current) {
                 if (token.speaker !== currentSpeaker && currentText) {
-                  speakerSegments.push({ 
+                  const segment = { 
                     speaker: currentSpeaker ? parseInt(currentSpeaker) : null, 
                     text: currentText.trim() 
+                  }
+                  speakerSegments.push(segment)
+                  console.log('➕ ADDED SPEAKER SEGMENT:', {
+                    speaker: segment.speaker,
+                    textLength: segment.text.length,
+                    textPreview: segment.text.substring(0, 30) + '...'
                   })
                   currentText = ''
                 }
@@ -439,20 +526,47 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
                 currentText += token.text
               }
               if (currentText) {
-                speakerSegments.push({ 
+                const segment = { 
                   speaker: currentSpeaker ? parseInt(currentSpeaker) : null, 
                   text: currentText.trim() 
+                }
+                speakerSegments.push(segment)
+                console.log('➕ ADDED FINAL SPEAKER SEGMENT:', {
+                  speaker: segment.speaker,
+                  textLength: segment.text.length,
+                  textPreview: segment.text.substring(0, 30) + '...'
                 })
               }
               
+              console.log('✅ FINAL SPEAKER SEGMENTS BUILT:', {
+                totalSegments: speakerSegments.length,
+                speakers: speakerSegments.map(s => s.speaker),
+                uniqueSpeakers: [...new Set(speakerSegments.map(s => s.speaker))]
+              })
+              
               accumulatedSegmentsRef.current = speakerSegments
             } else if (result.speakerSegments && result.speakerSegments.length > 0) {
-              console.log('🎤 FINAL SPEAKER SEGMENTS:', result.speakerSegments)
-              result.speakerSegments.forEach(segment => {
-                const key = `speaker-${segment.speaker}`
-                allSegmentsMap.set(key, segment)
+              console.log('🎤 FINAL SPEAKER SEGMENTS FROM API:', {
+                count: result.speakerSegments.length,
+                speakers: result.speakerSegments.map(s => s.speaker),
+                uniqueSpeakers: [...new Set(result.speakerSegments.map(s => s.speaker))],
+                segments: result.speakerSegments.map(s => ({
+                  speaker: s.speaker,
+                  textLength: s.text.length,
+                  textPreview: s.text.substring(0, 50) + '...'
+                }))
               })
-              accumulatedSegmentsRef.current = Array.from(allSegmentsMap.values())
+              allSegments = result.speakerSegments.map(segment => ({
+                speaker: segment.speaker,
+                text: segment.text
+              }))
+              accumulatedSegmentsRef.current = allSegments
+              
+              console.log('📊 FINAL ACCUMULATED SEGMENTS:', {
+                totalSegments: accumulatedSegmentsRef.current.length,
+                speakers: accumulatedSegmentsRef.current.map(s => s.speaker),
+                uniqueSpeakers: [...new Set(accumulatedSegmentsRef.current.map(s => s.speaker))]
+              })
             }
             
             // Set final transcription with what we've accumulated
