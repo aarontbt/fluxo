@@ -460,20 +460,20 @@ export function TranscriptionDisplay({
                         Copy
                       </Button>
                     </div>
-                    {typeof recording.medicalNotes.subjective === 'string' ? (
-                      <p className="text-gray-700 leading-relaxed">{recording.medicalNotes.subjective}</p>
+                    {typeof recording.medicalNotes?.subjective === 'string' ? (
+                      <p className="text-gray-700 leading-relaxed">{recording.medicalNotes?.subjective}</p>
                     ) : (
                       <div className="space-y-3">
                         <div>
                           <p className="text-sm font-medium text-gray-700 mb-1">Chief Complaint</p>
                           <p className="text-sm text-gray-600 leading-relaxed">
-                            {recording.medicalNotes.subjective.chiefComplaint}
+                            {recording.medicalNotes?.subjective?.chiefComplaint}
                           </p>
                         </div>
                         <div>
                           <p className="text-sm font-medium text-gray-700 mb-1">History</p>
                           <p className="text-sm text-gray-600 leading-relaxed">
-                            {recording.medicalNotes.subjective.history}
+                            {recording.medicalNotes?.subjective?.history}
                           </p>
                         </div>
                       </div>
@@ -499,7 +499,7 @@ export function TranscriptionDisplay({
                         Copy
                       </Button>
                     </div>
-                    <p className="text-gray-700 leading-relaxed">{recording.medicalNotes.objective}</p>
+                    <p className="text-gray-700 leading-relaxed">{recording.medicalNotes?.objective}</p>
                   </div>
 
                   {/* Assessment */}
@@ -521,7 +521,7 @@ export function TranscriptionDisplay({
                         Copy
                       </Button>
                     </div>
-                    <p className="text-gray-700 leading-relaxed">{recording.medicalNotes.assessment}</p>
+                    <p className="text-gray-700 leading-relaxed">{recording.medicalNotes?.assessment}</p>
                   </div>
 
                   {/* Plan */}
@@ -548,21 +548,21 @@ export function TranscriptionDisplay({
                         Copy
                       </Button>
                     </div>
-                    {typeof recording.medicalNotes.plan === 'string' ? (
-                      <p className="text-gray-700 leading-relaxed">{recording.medicalNotes.plan}</p>
+                    {typeof recording.medicalNotes?.plan === 'string' ? (
+                      <p className="text-gray-700 leading-relaxed">{recording.medicalNotes?.plan}</p>
                     ) : (
                       <div className="space-y-3 text-sm text-gray-600 leading-relaxed">
                         <div>
                           <p className="text-sm font-medium text-gray-700 mb-1">Medications</p>
-                          <p>{recording.medicalNotes.plan.medications}</p>
+                          <p>{recording.medicalNotes?.plan?.medications}</p>
                         </div>
                         <div>
                           <p className="text-sm font-medium text-gray-700 mb-1">Procedures</p>
-                          <p>{recording.medicalNotes.plan.procedures}</p>
+                          <p>{recording.medicalNotes?.plan?.procedures}</p>
                         </div>
                         <div>
                           <p className="text-sm font-medium text-gray-700 mb-1">Follow-up</p>
-                          <p>{recording.medicalNotes.plan.followUp}</p>
+                          <p>{recording.medicalNotes?.plan?.followUp}</p>
                         </div>
                       </div>
                     )}

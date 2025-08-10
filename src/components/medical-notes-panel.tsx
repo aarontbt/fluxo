@@ -14,7 +14,6 @@ export function MedicalNotesPanel({
   lastSaved = "a minute ago" 
 }: MedicalNotesPanelProps) {
   const [activeTab, setActiveTab] = useState('Note')
-  const [_selectedCategory, _setSelectedCategory] = useState('')
 
   const tabs = ['Information', 'Highlights', 'Note']
   

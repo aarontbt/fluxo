@@ -66,7 +66,7 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
       }
 
       mediaRecorder.onstop = () => {
-        const _audioBlob = new Blob(audioChunks, { type: 'audio/wav' })
+        new Blob(audioChunks, { type: 'audio/wav' })
         // You can handle the audio blob here (e.g., send to API for transcription)
       }
 

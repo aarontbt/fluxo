@@ -42,7 +42,7 @@ interface MedicalRecording {
 
 export default function MedicalConsultationPage() {
   const { isRecording, audioLevel, toggleRecording, duration } = useAudioRecorder()
-  const [_selectedRecording, setSelectedRecording] = useState<MedicalRecording | null>(null)
+  const [, setSelectedRecording] = useState<MedicalRecording | null>(null)
   
   const patientInfo = {
     name: "Jen Garcia",
