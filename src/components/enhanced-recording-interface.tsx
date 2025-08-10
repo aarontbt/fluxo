@@ -34,8 +34,7 @@ export function EnhancedRecordingInterface({
   onResumeRecording,
 }: EnhancedRecordingInterfaceProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-<<<<<<< HEAD
-  const animationFrameRef = useRef<number | undefined>(undefined)
+  const animationFrameRef = useRef<number | null>(null)
   const audioContextRef = useRef<AudioContext | null>(null)
   const analyzerRef = useRef<AnalyserNode | null>(null)
   const mediaStreamRef = useRef<MediaStream | null>(null)
