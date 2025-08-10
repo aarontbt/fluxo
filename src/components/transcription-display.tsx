@@ -577,11 +577,46 @@ export function TranscriptionDisplay({
             {/* AI Risk Analysis - Outside of tabs */}
             {recording.n8nAnalysis && (recording.n8nAnalysis.risk_hypotheses?.length > 0 || recording.n8nAnalysis.red_flags?.length > 0 || recording.n8nAnalysis.next_visit_metrics?.length > 0) && (
               <div className="px-6 pb-6 space-y-6">
+                {/* Red Flags - First Priority */}
+                {recording.n8nAnalysis.red_flags && recording.n8nAnalysis.red_flags.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-red-50 rounded-lg p-6"
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-medium text-gray-900">Red Flags - Monitor Closely</h3>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleCopy(recording.n8nAnalysis!.red_flags.join('\n'), 'red-flags')}
+                        className="flex items-center gap-2"
+                      >
+                        {copiedSection === 'red-flags' ? (
+                          <CheckCircle className="w-4 h-4 text-green-600" />
+                        ) : (
+                          <Copy className="w-4 h-4" />
+                        )}
+                        Copy
+                      </Button>
+                    </div>
+                    <div className="space-y-2">
+                      {recording.n8nAnalysis.red_flags.map((flag, index) => (
+                        <div key={index} className="flex items-start gap-2">
+                          <div className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0"></div>
+                          <span className="text-gray-700">{flag}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+
                 {/* Risk Hypotheses */}
                 {recording.n8nAnalysis.risk_hypotheses && recording.n8nAnalysis.risk_hypotheses.length > 0 && (
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
                     className="bg-amber-50 rounded-lg p-6"
                   >
                     <div className="flex items-center justify-between mb-4">
@@ -607,41 +642,6 @@ export function TranscriptionDisplay({
                             {index + 1}
                           </Badge>
                           <span className="text-gray-700">{hypothesis}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </motion.div>
-                )}
-
-                {/* Red Flags */}
-                {recording.n8nAnalysis.red_flags && recording.n8nAnalysis.red_flags.length > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
-                    className="bg-red-50 rounded-lg p-6"
-                  >
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-medium text-gray-900">Red Flags - Monitor Closely</h3>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleCopy(recording.n8nAnalysis!.red_flags.join('\n'), 'red-flags')}
-                        className="flex items-center gap-2"
-                      >
-                        {copiedSection === 'red-flags' ? (
-                          <CheckCircle className="w-4 h-4 text-green-600" />
-                        ) : (
-                          <Copy className="w-4 h-4" />
-                        )}
-                        Copy
-                      </Button>
-                    </div>
-                    <div className="space-y-2">
-                      {recording.n8nAnalysis.red_flags.map((flag, index) => (
-                        <div key={index} className="flex items-start gap-2">
-                          <div className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0"></div>
-                          <span className="text-gray-700">{flag}</span>
                         </div>
                       ))}
                     </div>
