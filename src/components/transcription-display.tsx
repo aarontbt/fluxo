@@ -168,7 +168,7 @@ export function TranscriptionDisplay({
             <div className="text-center">
               <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No Transcription Available</h3>
-              <p className="text-gray-500 mb-6">This recording doesn't have a transcription yet.</p>
+              <p className="text-gray-500 mb-6">This recording doesn&apos;t have a transcription yet.</p>
               <Button onClick={onNewRecording} className="bg-blue-600 text-white hover:bg-blue-700">
                 Start New Recording
               </Button>
@@ -271,7 +271,7 @@ export function TranscriptionDisplay({
                               className={`p-3 rounded-lg border-l-4 ${colorClass}`}
                             >
                               <div className="text-xs font-medium mb-1 opacity-75">
-                                {segment.speaker !== null ? `Speaker ${segment.speaker}` : 'Unknown Speaker'}
+                              {segment.speaker !== null ? `Speaker ${segment.speaker + 1}` : 'Unknown Speaker'}
                               </div>
                               <div className="text-sm leading-relaxed">
                                 {segment.text}

@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Button } from '@/components/ui/button'
 import { Clock, Mic, Square, Pause, Play } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 

@@ -133,6 +133,9 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
   // Token-based accumulation - like Soniox playground
   const finalTokensRef = useRef<Array<{text: string; speaker?: string}>>([])
   const lastReceivedTextRef = useRef<string>('')
+  
+  // Track recent speakers for live display (only show 2 most recent)
+  const recentSpeakersRef = useRef<string[]>([]) // Track speaker order
 
   // Initialize Soniox service on mount (client-side only)
   useEffect(() => {
@@ -165,6 +168,8 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
       // Reset token-based tracking
       finalTokensRef.current = []
       lastReceivedTextRef.current = ''
+      // Reset recent speakers tracking
+      recentSpeakersRef.current = []
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
@@ -289,12 +294,27 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
               // Append new final tokens to our permanent collection
               if (newFinalTokens.length > 0) {
                 finalTokensRef.current.push(...newFinalTokens)
+                
+                // Update recent speakers tracking for live display
+                newFinalTokens.forEach(token => {
+                  if (token.speaker) {
+                    const speakerId = token.speaker
+                    // Remove speaker if already in list
+                    recentSpeakersRef.current = recentSpeakersRef.current.filter(s => s !== speakerId)
+                    // Add to front (most recent)
+                    recentSpeakersRef.current.unshift(speakerId)
+                    // Keep only 2 most recent speakers
+                    recentSpeakersRef.current = recentSpeakersRef.current.slice(0, 2)
+                  }
+                })
+                
                 console.log('✅ NEW FINAL TOKENS:', {
                   count: newFinalTokens.length,
                   totalFinal: finalTokensRef.current.length,
                   sample: newFinalTokens.slice(0, 3).map(t => t.text).join(''),
                   speakers: [...new Set(newFinalTokens.map(t => t.speaker).filter(s => s !== undefined))],
-                  allFinalSpeakers: [...new Set(finalTokensRef.current.map(t => t.speaker).filter(s => s !== undefined))]
+                  allFinalSpeakers: [...new Set(finalTokensRef.current.map(t => t.speaker).filter(s => s !== undefined))],
+                  recentSpeakers: recentSpeakersRef.current
                 })
               }
               
@@ -333,18 +353,61 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
               // Store full transcription internally
               finalTranscriptionRef.current = formattedText
               
-              // For live display in sidebar, show only recent content (last ~100 chars of final + non-final)
-              const recentFinalTokens = finalTokensRef.current.slice(-10) // Last 10 final tokens
-              const recentFinalText = recentFinalTokens.map(t => t.text).join('')
+              // For live display in sidebar, show only content from 2 most recent speakers
+              const recentSpeakersSet = new Set(recentSpeakersRef.current)
+              console.log('🎯 FILTERING LIVE DISPLAY:', {
+                recentSpeakers: recentSpeakersRef.current,
+                totalFinalTokens: finalTokensRef.current.length
+              })
+              
+              // Filter final tokens to only include recent speakers
+              const recentSpeakerTokens = finalTokensRef.current.filter(token => 
+                !token.speaker || recentSpeakersSet.has(token.speaker)
+              )
+              
+              // Build live display from filtered tokens + non-final
+              const recentFinalText = recentSpeakerTokens.slice(-15).map(t => t.text).join('') // Last 15 tokens from recent speakers
               const liveDisplayText = recentFinalText + nonFinalText
               
-              // Format the live display with speaker if needed
-              liveFormattedText = liveDisplayText
-              if (recentFinalTokens.some(t => t.speaker)) {
-                const lastSpeaker = recentFinalTokens[recentFinalTokens.length - 1]?.speaker
-                if (lastSpeaker) {
-                  liveFormattedText = `[Speaker ${lastSpeaker}] ${liveDisplayText}`
+              // Format with speaker segments for recent speakers only
+              if (recentSpeakerTokens.some(t => t.speaker)) {
+                const segments: Array<{speaker: string | undefined; text: string}> = []
+                let currentSpeaker: string | undefined = undefined
+                let currentText = ''
+                
+                // Build segments from filtered tokens
+                const tokensToProcess = [...recentSpeakerTokens.slice(-15)] // Recent tokens from recent speakers
+                if (nonFinalText) {
+                  // Add non-final text with current speaker context
+                  const lastSpeaker = tokensToProcess[tokensToProcess.length - 1]?.speaker
+                  tokensToProcess.push({ text: nonFinalText, speaker: lastSpeaker })
                 }
+                
+                for (const token of tokensToProcess) {
+                  if (token.speaker !== currentSpeaker && currentText) {
+                    segments.push({ speaker: currentSpeaker, text: currentText })
+                    currentText = ''
+                  }
+                  currentSpeaker = token.speaker
+                  currentText += token.text
+                }
+                if (currentText) {
+                  segments.push({ speaker: currentSpeaker, text: currentText })
+                }
+                
+                // Format only recent speaker segments
+                liveFormattedText = segments
+                  .filter(s => !s.speaker || recentSpeakersSet.has(s.speaker))
+                  .map(s => s.speaker ? `[Speaker ${s.speaker}] ${s.text}` : s.text)
+                  .join(' ')
+                  
+                console.log('🎯 LIVE DISPLAY FORMATTED:', {
+                  segmentCount: segments.length,
+                  filteredSegments: segments.filter(s => !s.speaker || recentSpeakersSet.has(s.speaker)).length,
+                  preview: liveFormattedText.substring(0, 100) + '...'
+                })
+              } else {
+                liveFormattedText = liveDisplayText
               }
               
               setLiveTranscription(liveFormattedText)
@@ -498,9 +561,9 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
             })
             
             // Final segments update for speaker segments display
+            const speakerSegments: Array<{speaker: number | null; text: string}> = []
             if (finalTokensRef.current.length > 0) {
               // Build speaker segments from our final tokens
-              const speakerSegments: Array<{speaker: number | null; text: string}> = []
               let currentSpeaker: string | undefined = undefined
               let currentText = ''
               
@@ -546,7 +609,17 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
               })
               
               accumulatedSegmentsRef.current = speakerSegments
-            } else if (result.speakerSegments && result.speakerSegments.length > 0) {
+                
+               console.log('🎯 FINAL SEGMENTS SET TO ACCUMULATED REF:', {
+                 segmentCount: accumulatedSegmentsRef.current.length,
+                 segments: accumulatedSegmentsRef.current.map((s, i) => ({
+                   index: i,
+                   speaker: s.speaker,
+                   textLength: s.text.length,
+                   textPreview: s.text.substring(0, 30) + '...'
+                 }))
+               })
+             } else if (result.speakerSegments && result.speakerSegments.length > 0) {
               console.log('🎤 FINAL SPEAKER SEGMENTS FROM API:', {
                 count: result.speakerSegments.length,
                 speakers: result.speakerSegments.map(s => s.speaker),
@@ -577,14 +650,26 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
               length: bestTranscription?.length || 0
             })
             
+            // Update currentRecording with complete final data
             setCurrentRecording(prev => {
               return prev ? {
                 ...prev,
                 transcription: bestTranscription,
-                speakerSegments: accumulatedSegmentsRef.current,
+                speakerSegments: accumulatedSegmentsRef.current.length > 0 
+                  ? accumulatedSegmentsRef.current 
+                  : speakerSegments,  // Use the properly built segments if accumulated is empty
                 liveTranscription: ''
               } : null
             })
+            
+            // IMPORTANT: Update the accumulated segments with the properly built ones for stopRecording
+            if (speakerSegments.length > 0) {
+              accumulatedSegmentsRef.current = speakerSegments
+              console.log('🔧 UPDATED ACCUMULATED SEGMENTS WITH BUILT SEGMENTS:', {
+                count: speakerSegments.length,
+                uniqueSpeakers: [...new Set(speakerSegments.map(s => s.speaker))]
+              })
+            }
             
             setLiveTranscription('')
             setIsTranscribing(false)
@@ -611,7 +696,7 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
       setIsPaused(false)
       setAudioLevel(0)
 
-      // Stop Soniox transcription
+      // Stop Soniox transcription and wait for final result
       if (sonioxServiceRef.current) {
         console.log('🛑 STOPPING SONIOX TRANSCRIPTION')
         await sonioxServiceRef.current.stopRecording()
@@ -626,8 +711,11 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
         audioStreamRef.current.getTracks().forEach(track => track.stop())
       }
 
+      // Wait a bit to ensure final result callback has been processed
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
       if (currentRecording) {
-        // Make sure we have the final accumulated transcription
+        // Make sure we have the final accumulated transcription and segments
         const finalRecording = {
           ...currentRecording,
           duration,
@@ -638,6 +726,15 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
             ? accumulatedSegmentsRef.current 
             : currentRecording.speakerSegments
         }
+        
+        console.log('🏁 FINAL RECORDING BEFORE PROCESSING (AFTER WAIT):', {
+          transcriptionLength: finalRecording.transcription?.length || 0,
+          transcriptionPreview: finalRecording.transcription?.substring(0, 100) + '...',
+          speakerSegmentsCount: finalRecording.speakerSegments?.length || 0,
+          finalTranscriptionRefLength: finalTranscriptionRef.current?.length || 0,
+          currentRecordingTranscriptionLength: currentRecording.transcription?.length || 0,
+          accumulatedSegmentsCount: accumulatedSegmentsRef.current.length
+        })
         
         setCurrentRecording(finalRecording)
         
@@ -670,6 +767,13 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
   }, [isRecording, isPaused])
 
   const processRecording = useCallback(async (recording: MedicalRecording) => {
+    console.log('🔄 PROCESSING RECORDING INPUT:', {
+      transcriptionLength: recording.transcription?.length || 0,
+      transcriptionPreview: recording.transcription?.substring(0, 100) + '...',
+      speakerSegmentsCount: recording.speakerSegments?.length || 0,
+      hasTranscription: !!recording.transcription
+    })
+    
     // Keep the real transcription from Soniox, just mark as processed
     const processedRecording: MedicalRecording = {
       ...recording,
@@ -700,6 +804,14 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
       }
     }
 
+    console.log('✅ PROCESSING RECORDING OUTPUT:', {
+      transcriptionLength: processedRecording.transcription?.length || 0,
+      transcriptionPreview: processedRecording.transcription?.substring(0, 100) + '...',
+      speakerSegmentsCount: processedRecording.speakerSegments?.length || 0,
+      hasTranscription: !!processedRecording.transcription,
+      isProcessing: processedRecording.isProcessing
+    })
+    
     setCurrentRecording(processedRecording)
     setRecordings(prev => [processedRecording, ...prev])
 

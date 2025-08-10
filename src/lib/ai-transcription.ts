@@ -24,7 +24,7 @@ export class AITranscriptionService {
     this.apiKey = apiKey || process.env.NEXT_PUBLIC_OPENAI_API_KEY || ''
   }
 
-  async transcribeAudio(audioBlob: Blob): Promise<TranscriptionResult> {
+  async transcribeAudio(_audioBlob: Blob): Promise<TranscriptionResult> {
     // For demo purposes, simulate transcription
     return new Promise((resolve) => {
       setTimeout(() => {
@@ -79,7 +79,7 @@ export class AITranscriptionService {
     */
   }
 
-  async generateHealthcareInsights(transcription: string): Promise<HealthcareInsights> {
+  async generateHealthcareInsights(_transcription: string): Promise<HealthcareInsights> {
     // For demo purposes, simulate AI analysis
     return new Promise((resolve) => {
       setTimeout(() => {
