@@ -1,8 +1,9 @@
 #!/usr/bin/env node
+require('dotenv').config({ path: '.env.local' })
 
 // Complete test of the medical recording -> n8n -> analysis display flow
-const N8N_ENDPOINT = 'https://n8n.example.com/webhook/webhook-id'
-const BEARER_TOKEN = 'your-auth-token-here'
+const N8N_ENDPOINT = process.env.N8N_WEBHOOK_URL || 'https://your-n8n-instance.com/webhook/webhook-id'
+const BEARER_TOKEN = process.env.N8N_WEBHOOK_AUTH_TOKEN || 'your-auth-token-here'
 
 // Simulate the complete medical consultation data
 const testPayload = {

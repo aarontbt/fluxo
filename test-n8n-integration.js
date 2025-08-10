@@ -1,8 +1,9 @@
 #!/usr/bin/env node
+require('dotenv').config({ path: '.env.local' })
 
 // Test script for n8n webhook integration
-const N8N_ENDPOINT = 'https://n8n.example.com/webhook/webhook-id'
-const BEARER_TOKEN = 'your-auth-token-here'
+const N8N_ENDPOINT = process.env.N8N_WEBHOOK_URL || 'https://your-n8n-instance.com/webhook/webhook-id'
+const BEARER_TOKEN = process.env.N8N_WEBHOOK_AUTH_TOKEN || 'your-auth-token-here'
 
 // Test data matching the expected format
 const testPayload = {

@@ -16,8 +16,8 @@ interface SendToN8nParams {
   sessionNotes?: { timestamp: string; note: string }[]
 }
 
-const N8N_ENDPOINT = 'https://n8n.example.com/webhook/webhook-id'
-const BEARER_TOKEN = 'your-auth-token-here'
+const N8N_ENDPOINT = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL || 'https://your-n8n-instance.com/webhook/webhook-id'
+const BEARER_TOKEN = process.env.NEXT_PUBLIC_N8N_WEBHOOK_AUTH_TOKEN || 'your-auth-token-here'
 
 export async function sendToN8n({
   transcription,
