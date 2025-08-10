@@ -271,7 +271,7 @@ export function TranscriptionDisplay({
                               className={`p-3 rounded-lg border-l-4 ${colorClass}`}
                             >
                               <div className="text-xs font-medium mb-1 opacity-75">
-                                {segment.speaker !== null ? `Speaker ${segment.speaker}` : 'Unknown Speaker'}
+                              {segment.speaker !== null ? `Speaker ${segment.speaker + 1}` : 'Unknown Speaker'}
                               </div>
                               <div className="text-sm leading-relaxed">
                                 {segment.text}
