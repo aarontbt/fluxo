@@ -114,10 +114,13 @@ export function EnhancedRecordingInterface({
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
   }
 
-  const formatDate = () => {
+  const [formattedDate, setFormattedDate] = useState<string>('')
+
+  useEffect(() => {
+    // Only set the date on client side to avoid hydration mismatch
     const now = new Date()
-    return `Recording 1: ${now.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}, ${now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`
-  }
+    setFormattedDate(`Recording 1: ${now.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}, ${now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`)
+  }, [])
 
   // Enhanced waveform drawing
   useEffect(() => {
@@ -269,7 +272,7 @@ export function EnhancedRecordingInterface({
         {/* Recording Info */}
         <div className="text-center mb-8">
           <div className="text-sm text-gray-500 mb-2">
-            {formatDate()}
+            {formattedDate || 'Recording 1: Loading...'}
           </div>
           <AnimatePresence mode="wait">
             <motion.div
