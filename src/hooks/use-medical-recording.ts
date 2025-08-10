@@ -608,7 +608,17 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
               })
               
               accumulatedSegmentsRef.current = speakerSegments
-            } else if (result.speakerSegments && result.speakerSegments.length > 0) {
+                
+               console.log('🎯 FINAL SEGMENTS SET TO ACCUMULATED REF:', {
+                 segmentCount: accumulatedSegmentsRef.current.length,
+                 segments: accumulatedSegmentsRef.current.map((s, i) => ({
+                   index: i,
+                   speaker: s.speaker,
+                   textLength: s.text.length,
+                   textPreview: s.text.substring(0, 30) + '...'
+                 }))
+               })
+             } else if (result.speakerSegments && result.speakerSegments.length > 0) {
               console.log('🎤 FINAL SPEAKER SEGMENTS FROM API:', {
                 count: result.speakerSegments.length,
                 speakers: result.speakerSegments.map(s => s.speaker),
@@ -685,7 +695,7 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
       setIsPaused(false)
       setAudioLevel(0)
 
-      // Stop Soniox transcription
+      // Stop Soniox transcription and wait for final result
       if (sonioxServiceRef.current) {
         console.log('🛑 STOPPING SONIOX TRANSCRIPTION')
         await sonioxServiceRef.current.stopRecording()
@@ -700,8 +710,11 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
         audioStreamRef.current.getTracks().forEach(track => track.stop())
       }
 
+      // Wait a bit to ensure final result callback has been processed
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
       if (currentRecording) {
-        // Make sure we have the final accumulated transcription
+        // Make sure we have the final accumulated transcription and segments
         const finalRecording = {
           ...currentRecording,
           duration,
@@ -713,7 +726,7 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
             : currentRecording.speakerSegments
         }
         
-        console.log('🏁 FINAL RECORDING BEFORE PROCESSING:', {
+        console.log('🏁 FINAL RECORDING BEFORE PROCESSING (AFTER WAIT):', {
           transcriptionLength: finalRecording.transcription?.length || 0,
           transcriptionPreview: finalRecording.transcription?.substring(0, 100) + '...',
           speakerSegmentsCount: finalRecording.speakerSegments?.length || 0,
