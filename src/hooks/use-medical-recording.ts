@@ -42,6 +42,12 @@ interface MedicalRecording {
       musculoskeletal: string
     }
   }
+  n8nAnalysis?: {
+    soa_markdown: string
+    risk_hypotheses: string[]
+    red_flags: string[]
+    next_visit_metrics: string[]
+  }
   isProcessing: boolean
 }
 
@@ -818,11 +824,18 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
     // Send transcription and medical notes to n8n endpoint
     if (processedRecording.transcription) {
       try {
-        await sendToN8n({
+        const n8nAnalysis = await sendToN8n({
           transcription: processedRecording.transcription,
           sessionNotes: processedRecording.sessionNotes,
           medicalNotes: processedRecording.medicalNotes
         })
+        
+        // Update recording with n8n analysis if received
+        if (n8nAnalysis) {
+          processedRecording.n8nAnalysis = n8nAnalysis
+          setCurrentRecording(processedRecording)
+          setRecordings(prev => [processedRecording, ...prev.slice(1)])
+        }
       } catch (error) {
         console.error('Failed to send data to n8n:', error)
         // Continue with normal processing even if n8n fails

@@ -4,6 +4,13 @@ interface N8nPayload {
   'domain-knowledge': string
 }
 
+interface N8nAnalysisResponse {
+  soa_markdown: string
+  risk_hypotheses: string[]
+  red_flags: string[]
+  next_visit_metrics: string[]
+}
+
 interface SendToN8nParams {
   transcription: string
   sessionNotes?: { timestamp: string; note: string }[]
@@ -17,7 +24,7 @@ export async function sendToN8n({
   transcription, 
   sessionNotes, 
   medicalNotes 
-}: SendToN8nParams): Promise<void> {
+}: SendToN8nParams): Promise<N8nAnalysisResponse | null> {
   try {
     // Format session notes as an array of strings
     const formattedSessionNotes = sessionNotes?.map(note => 
@@ -48,8 +55,25 @@ export async function sendToN8n({
 
     const result = await response.json()
     console.log('✅ Successfully sent data to n8n:', result)
+
+    // Parse the n8n response which contains the medical analysis
+    if (result.output) {
+      try {
+        // Extract JSON from the output string (it's wrapped in ```json)
+        const jsonMatch = result.output.match(/```json\n([\s\S]*?)\n```/)
+        if (jsonMatch) {
+          const analysisData = JSON.parse(jsonMatch[1])
+          console.log('🩺 Parsed medical analysis:', analysisData)
+          return analysisData as N8nAnalysisResponse
+        }
+      } catch (parseError) {
+        console.error('❌ Failed to parse n8n analysis response:', parseError)
+      }
+    }
+
+    return null
   } catch (error) {
     console.error('❌ Error sending data to n8n:', error)
-    throw error
+    return null
   }
 }

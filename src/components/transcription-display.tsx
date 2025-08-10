@@ -43,6 +43,12 @@ interface MedicalRecording {
       musculoskeletal: string
     }
   }
+  n8nAnalysis?: {
+    soa_markdown: string
+    risk_hypotheses: string[]
+    red_flags: string[]
+    next_visit_metrics: string[]
+  }
   isProcessing: boolean
 }
 
@@ -61,7 +67,7 @@ export function TranscriptionDisplay({
   onSave,
   onNewRecording,
 }: TranscriptionDisplayProps) {
-  const [activeTab, setActiveTab] = useState<'transcription' | 'soap'>('transcription')
+  const [activeTab, setActiveTab] = useState<'transcription' | 'soap' | 'analysis'>('transcription')
   const [copiedSection, setCopiedSection] = useState<string | null>(null)
   const [planMode, setPlanMode] = useState(false)
 
@@ -203,6 +209,18 @@ export function TranscriptionDisplay({
                   >
                     SOAP Notes
                   </button>
+                  {recording.n8nAnalysis && (
+                    <button
+                      onClick={() => setActiveTab('analysis')}
+                      className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
+                        activeTab === 'analysis'
+                          ? 'bg-white text-blue-600 shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      AI Analysis
+                    </button>
+                  )}
                 </div>
                 
                 {/* Plan Mode Switch */}
@@ -529,6 +547,130 @@ export function TranscriptionDisplay({
                   </div>
                     </>
                   )}
+                </motion.div>
+              )}
+
+              {activeTab === 'analysis' && recording.n8nAnalysis && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="space-y-6"
+                >
+                  {/* Medical Summary */}
+                  <div className="bg-blue-50 rounded-lg p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-medium text-gray-900">AI Medical Analysis</h3>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleCopy(recording.n8nAnalysis!.soa_markdown, 'analysis-summary')}
+                        className="flex items-center gap-2"
+                      >
+                        {copiedSection === 'analysis-summary' ? (
+                          <CheckCircle className="w-4 h-4 text-green-600" />
+                        ) : (
+                          <Copy className="w-4 h-4" />
+                        )}
+                        Copy Summary
+                      </Button>
+                    </div>
+                    <div className="prose prose-sm max-w-none">
+                      <div 
+                        className="whitespace-pre-line text-gray-700"
+                        dangerouslySetInnerHTML={{ 
+                          __html: recording.n8nAnalysis.soa_markdown
+                            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                            .replace(/- /g, '• ')
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Risk Hypotheses */}
+                  <div className="bg-amber-50 rounded-lg p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-medium text-gray-900">Risk Hypotheses</h3>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleCopy(recording.n8nAnalysis!.risk_hypotheses.join('\n'), 'risk-hypotheses')}
+                        className="flex items-center gap-2"
+                      >
+                        {copiedSection === 'risk-hypotheses' ? (
+                          <CheckCircle className="w-4 h-4 text-green-600" />
+                        ) : (
+                          <Copy className="w-4 h-4" />
+                        )}
+                        Copy
+                      </Button>
+                    </div>
+                    <div className="space-y-2">
+                      {recording.n8nAnalysis.risk_hypotheses.map((hypothesis, index) => (
+                        <div key={index} className="flex items-start gap-2">
+                          <Badge variant="secondary" className="mt-0.5 text-xs">
+                            {index + 1}
+                          </Badge>
+                          <span className="text-gray-700">{hypothesis}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Red Flags */}
+                  <div className="bg-red-50 rounded-lg p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-medium text-gray-900">Red Flags - Monitor Closely</h3>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleCopy(recording.n8nAnalysis!.red_flags.join('\n'), 'red-flags')}
+                        className="flex items-center gap-2"
+                      >
+                        {copiedSection === 'red-flags' ? (
+                          <CheckCircle className="w-4 h-4 text-green-600" />
+                        ) : (
+                          <Copy className="w-4 h-4" />
+                        )}
+                        Copy
+                      </Button>
+                    </div>
+                    <div className="space-y-2">
+                      {recording.n8nAnalysis.red_flags.map((flag, index) => (
+                        <div key={index} className="flex items-start gap-2">
+                          <div className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0"></div>
+                          <span className="text-gray-700">{flag}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Next Visit Metrics */}
+                  <div className="bg-green-50 rounded-lg p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-medium text-gray-900">Next Visit Monitoring</h3>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleCopy(recording.n8nAnalysis!.next_visit_metrics.join('\n'), 'next-visit')}
+                        className="flex items-center gap-2"
+                      >
+                        {copiedSection === 'next-visit' ? (
+                          <CheckCircle className="w-4 h-4 text-green-600" />
+                        ) : (
+                          <Copy className="w-4 h-4" />
+                        )}
+                        Copy
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {recording.n8nAnalysis.next_visit_metrics.map((metric, index) => (
+                        <div key={index} className="flex items-center gap-2 p-3 bg-white rounded-md">
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                          <span className="text-gray-700 text-sm">{metric}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </motion.div>
               )}
             </div>
