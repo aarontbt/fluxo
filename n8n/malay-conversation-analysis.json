@@ -1,0 +1,10 @@
+{
+  "soa_markdown": "**Subjective**: 6‑year‑old girl (Aisyah) presents with fever (39 °C) since yesterday, sore throat, difficulty swallowing, and mild breathing difficulty; parents report no rash. **Objective**: Temperature 38.2 °C, throat erythematous, no rash, mild dyspnea noted. **Assessment**: Viral pharyngitis/upper respiratory tract infection. Consideration of hand, foot and mouth disease is low due to absence of rash. No red‑flag signs present. **Plan**: None included as per SOA‑only policy.",
+  "risk_hypotheses": [
+    "viral pharyngitis",
+    "upper respiratory tract infection",
+    "possible hand, foot and mouth disease (unlikely due to no rash)"
+  ],
+  "red_flags": [],
+  "next_visit_metrics": []
+}

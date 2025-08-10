@@ -1,0 +1,413 @@
+{
+  "name": "AITKL - SOA",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Transcript Input: {{ $('Webhook').item.json.body['transcribe-input'] }}\n\nMedical Notes: {{ $('Webhook').item.json.body['medical-notes'] }}\n\nDo not give me clarification questions.",
+        "options": {
+          "systemMessage": "SYSTEM — Operator Router (Malaysia, SOA-only)\n\nROLE & GOAL\nYou are the Operator Router. Read short free text or transcript metadata and select EXACTLY ONE specialist tool:\n\n- Paediatrics-SOA (child/adolescent, babies related illness)\n- Dermatology-SOA (adult/teen skin, hair, nails, and related mucous membranes)\n\nAll downstream outputs must be SOA-only (Subjective, Objective, Assessment) — NO Plan.\n\nCONTEXT\n- Region: Malaysia; frequent code-switching (BM/EN/中文/தமிழ்).\n- Privacy: PDPA; never echo phone/IC/address.\n- Setting: trichology clinics/headspa & paediatric consults.\n\nFINAL OUTPUT\n- Do not ask clarification question!\n- Reply back in english\n- Take the output JSON soa_markdown and format it proper markdown / plain text.\n\nROUTING RULES (DETERMINISTIC)\n1) AGE:\n   - If <18 OR child terms (“anak”, “kid/child/teen”, “Std/Primary/Form”, “儿子/女儿”) → Paediatrics-SOA.\n   - Else → Trichology-SOA.\n   - If age unknown: infer from school/guardian context; if still unclear, ask ONE clarify question.\n2) DOMAIN (must be scalp/hair):\n   - itch/gatal/痒, flakes/kelemumur/头屑, oiliness, scalp pain/tenderness, nits/lice/kutu, ring/round patch/black dots, pustules/folliculitis, traction/tight ponytail/hijab tension → in scope.\n3) LANGUAGE:\n   - Detect preferred language; default BM if unclear.\n4) RED-FLAG KEYWORDS (do not change routing; surface for the specialist):\n   - kerion/boggy swelling, fever with spreading lesion, abscess, bleeding patch, sudden expanding bald patch, immunosuppressed.\n5) SOA-ONLY POLICY:\n   - Set soa_only=true. Never include Plan/recommendations/dosages in any field.\n\nCONFIDENCE\nScore 0–1. \n- 0.9–1.0: explicit age band + clear scalp symptom(s).\n- 0.7–0.89: partial evidence (e.g., “my son + dandruff”).\n- <0.7: missing age or symptom → set needs_clarification=true and provide ONE concise clarify_question."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "22f8e079-71ee-4ae9-ad8c-449156836eba",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-20b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        208,
+        176
+      ],
+      "id": "f3aa500d-4cbd-40d2-a829-ae6fceaea218",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "tlHPqDqMUyg2IH6N",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        672,
+        528
+      ],
+      "id": "89ff4761-03a1-4f3b-ab30-9dc2769ceae9",
+      "name": "Groq Chat Model 3",
+      "credentials": {
+        "groqApi": {
+          "id": "tlHPqDqMUyg2IH6N",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        304,
+        528
+      ],
+      "id": "c0018151-fe25-4c3a-954c-b30c1e49840e",
+      "name": "Groq Chat Model 2",
+      "credentials": {
+        "groqApi": {
+          "id": "tlHPqDqMUyg2IH6N",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Specialist Agent\nThe sub agent tool to give an accurate SOAP response",
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -16,
+        384
+      ],
+      "typeVersion": 1,
+      "id": "93f02e83-24a1-4f7b-8780-79d0447aafc7",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Summarize paediatric consults into SOA only (Subjective, Objective, Assessment). No Plan. doctor-friendly, neutral wording.\n\nDo NOT include a Plan, advice, product names, dosages, cadences, or instructions.\n\nPaediatric red flags\n - Seizure/fits\n - Difficulty in breathing, breathless\n - Chest recession\n - Unconscious\n - Unable to walk/very weak\n - Sunken eyes\n - High fever > 40 in less than 3 months old\n - Sever pain\n - Non blanchable body rash\n\n\nReturn STRICT JSON with keys: soa_markdown, risk_hypotheses[], red_flags[], next_visit_metrics[]. Language = preferred_language. ≤150 words in soa_markdown. Non-diagnostic phrasing (use 'consideration', 'pattern', 'risk').",
+        "text": "=Transcript Input: {{ $('Webhook').item.json.body['transcribe-input'] }}\n\nMedical Notes: {{ $('Webhook').item.json.body['medical-notes'] }}\n\nDo not give me clarification questions.",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agentTool",
+      "typeVersion": 2.2,
+      "position": [
+        672,
+        336
+      ],
+      "id": "723a6e2b-674a-40e7-9a6a-f0a37ddda657",
+      "name": "Paediatrics-SOA"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "webhook-id",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -896,
+        96
+      ],
+      "id": "2ec45472-c27d-4dff-af0a-df01f5a00481",
+      "name": "Webhook",
+      "webhookId": "webhook-id"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"output\": {{ $json.output }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        736,
+        0
+      ],
+      "id": "ce35f648-12cd-4852-bf66-95047fde4207",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4c35898d-5a70-41bc-9fb6-9d63bbbee222",
+              "name": "config.bearerToken",
+              "type": "string",
+              "value": "your-auth-token-here"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3146b870-f1d1-4130-8671-724bbe1ab993",
+      "name": "Configuration",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        -592,
+        96
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $('Webhook').item.json.headers.authorization }}",
+              "value2": "=Bearer {{ $json.config.bearerToken }}"
+            }
+          ]
+        }
+      },
+      "id": "873ce06f-4dfa-4375-be8c-2560809507e4",
+      "name": "Check Authorization Header",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        -320,
+        96
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "Invalid authentication.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -80,
+        176
+      ],
+      "id": "8410bfee-7081-4920-b022-f6c00bb7fda7",
+      "name": "Invalid"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -80,
+        0
+      ],
+      "id": "3313d59a-889f-41af-931f-a87053dd55ce",
+      "name": "Success"
+    },
+    {
+      "parameters": {
+        "content": "## Security Check\nBasic request bearer auth check",
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -464,
+        -208
+      ],
+      "typeVersion": 1,
+      "id": "f0460e0e-cb2c-4493-9751-f078cfc1f249",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## Main Agent\nThe main AI agent to understand beginning input, and send it to specialize AI agents to process"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        240,
+        -208
+      ],
+      "typeVersion": 1,
+      "id": "9a32fa7f-46da-41cd-b73e-19a95bcccfa0",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Summarize the conditions of the skin, hair, nails, and related mucous membranes, including diseases, infections, allergies, and cosmetic concerns.\n\nDo NOT include a Plan, advice, product names, dosages, cadences, or instructions. \n\nReturn STRICT JSON with keys: soa_markdown, risk_hypotheses[], red_flags[], next_visit_metrics[]. Language = preferred_language. ≤150 words in soa_markdown. Non-diagnostic phrasing (use 'consideration', 'pattern', 'risk').",
+        "text": "=Transcript Input: {{ $('Webhook').item.json.body['transcribe-input'] }}\n\nMedical Notes: {{ $('Webhook').item.json.body['medical-notes'] }}\n\nDo not give me clarification questions.",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agentTool",
+      "typeVersion": 2.2,
+      "position": [
+        304,
+        336
+      ],
+      "id": "9927a0c6-98d3-43da-a1bf-6c1a0ced68d9",
+      "name": "Dermatology-SOA"
+    }
+  ],
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n.example.com",
+            "user-agent": "curl/8.7.1",
+            "content-length": "280",
+            "accept": "*/*",
+            "authorization": "Bearer your-auth-token-here",
+            "content-type": "application/json",
+            "via": "2.0 Caddy",
+            "x-forwarded-for": "104.28.240.41",
+            "x-forwarded-host": "n8n.example.com",
+            "x-forwarded-proto": "https",
+            "accept-encoding": "gzip"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "transcribe-input": "Hi, Doctor my kid is having coughing non-stop these few days. The cough seems to get worse at night.",
+            "medical-notes": [
+              "[2025-08-10 11:15:23] Patient appears anxious",
+              "[2025-08-10 11:16:45] Child age: 7 years old"
+            ],
+            "domain-knowledge": ""
+          },
+          "webhookUrl": "https://n8n.example.com/webhook/webhook-id",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model 2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Dermatology-SOA",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model 3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Paediatrics-SOA",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paediatrics-SOA": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuration": {
+      "main": [
+        [
+          {
+            "node": "Check Authorization Header",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Authorization Header": {
+      "main": [
+        [
+          {
+            "node": "Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Invalid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Success": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dermatology-SOA": {
+      "ai_tool": [
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "b1178787-3ab1-4735-abcc-994457a09b6b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "2596bf695481c5d026a45b85e3840ca6eaf13a1ed91ccf73bde058887271207f"
+  },
+  "id": "8wZ5NaYF6Iy6FGAX",
+  "tags": []
+}

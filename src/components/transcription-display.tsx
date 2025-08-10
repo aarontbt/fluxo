@@ -355,7 +355,7 @@ export function TranscriptionDisplay({
                   {recording.n8nAnalysis?.soa_markdown && (
                     <div className="bg-blue-50 rounded-lg p-6">
                       <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-medium text-gray-900">AI Generated SOAP Assessment</h3>
+                        <h3 className="text-lg font-medium text-gray-900">AI Generated SOA Assessment</h3>
                         <Button
                           variant="outline"
                           size="sm"
