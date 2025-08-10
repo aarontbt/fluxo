@@ -67,7 +67,7 @@ export function TranscriptionDisplay({
   onSave,
   onNewRecording,
 }: TranscriptionDisplayProps) {
-  const [activeTab, setActiveTab] = useState<'transcription' | 'soap' | 'analysis'>('transcription')
+  const [activeTab, setActiveTab] = useState<'transcription' | 'soap'>('transcription')
   const [copiedSection, setCopiedSection] = useState<string | null>(null)
   const [planMode, setPlanMode] = useState(false)
 
@@ -209,18 +209,7 @@ export function TranscriptionDisplay({
                   >
                     SOAP Notes
                   </button>
-                  {recording.n8nAnalysis && (recording.n8nAnalysis.risk_hypotheses?.length > 0 || recording.n8nAnalysis.red_flags?.length > 0 || recording.n8nAnalysis.next_visit_metrics?.length > 0) && (
-                    <button
-                      onClick={() => setActiveTab('analysis')}
-                      className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
-                        activeTab === 'analysis'
-                          ? 'bg-white text-blue-600 shadow-sm'
-                          : 'text-gray-600 hover:text-gray-900'
-                      }`}
-                    >
-                      AI Analysis
-                    </button>
-                  )}
+
                 </div>
                 
                 {/* Plan Mode Switch */}
@@ -583,17 +572,18 @@ export function TranscriptionDisplay({
                 </motion.div>
               )}
 
-              {activeTab === 'analysis' && recording.n8nAnalysis && (recording.n8nAnalysis.risk_hypotheses?.length > 0 || recording.n8nAnalysis.red_flags?.length > 0 || recording.n8nAnalysis.next_visit_metrics?.length > 0) && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="space-y-6"
-                >
+            </div>
 
-
-                  {/* Risk Hypotheses */}
-                  {recording.n8nAnalysis.risk_hypotheses && recording.n8nAnalysis.risk_hypotheses.length > 0 && (
-                  <div className="bg-amber-50 rounded-lg p-6">
+            {/* AI Risk Analysis - Outside of tabs */}
+            {recording.n8nAnalysis && (recording.n8nAnalysis.risk_hypotheses?.length > 0 || recording.n8nAnalysis.red_flags?.length > 0 || recording.n8nAnalysis.next_visit_metrics?.length > 0) && (
+              <div className="px-6 pb-6 space-y-6">
+                {/* Risk Hypotheses */}
+                {recording.n8nAnalysis.risk_hypotheses && recording.n8nAnalysis.risk_hypotheses.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-amber-50 rounded-lg p-6"
+                  >
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="text-lg font-medium text-gray-900">Risk Hypotheses</h3>
                       <Button
@@ -620,12 +610,17 @@ export function TranscriptionDisplay({
                         </div>
                       ))}
                     </div>
-                    </div>
-                   )}
+                  </motion.div>
+                )}
 
-                    {/* Red Flags */}
-                   {recording.n8nAnalysis.red_flags && recording.n8nAnalysis.red_flags.length > 0 && (
-                   <div className="bg-red-50 rounded-lg p-6">
+                {/* Red Flags */}
+                {recording.n8nAnalysis.red_flags && recording.n8nAnalysis.red_flags.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="bg-red-50 rounded-lg p-6"
+                  >
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="text-lg font-medium text-gray-900">Red Flags - Monitor Closely</h3>
                       <Button
@@ -650,12 +645,17 @@ export function TranscriptionDisplay({
                         </div>
                       ))}
                     </div>
-                    </div>
-                   )}
+                  </motion.div>
+                )}
 
-                    {/* Next Visit Metrics */}
-                   {recording.n8nAnalysis.next_visit_metrics && recording.n8nAnalysis.next_visit_metrics.length > 0 && (
-                   <div className="bg-green-50 rounded-lg p-6">
+                {/* Next Visit Metrics */}
+                {recording.n8nAnalysis.next_visit_metrics && recording.n8nAnalysis.next_visit_metrics.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="bg-green-50 rounded-lg p-6"
+                  >
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="text-lg font-medium text-gray-900">Next Visit Monitoring</h3>
                       <Button
@@ -680,11 +680,10 @@ export function TranscriptionDisplay({
                         </div>
                       ))}
                     </div>
-                    </div>
-                      )}
-                      </motion.div>
-                      )}
-             </div>
+                  </motion.div>
+                )}
+              </div>
+            )}
 
             {/* Actions */}
             <div className="p-6 border-t border-gray-100">
