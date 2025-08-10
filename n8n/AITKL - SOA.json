@@ -94,7 +94,7 @@
     },
     {
       "parameters": {
-        "toolDescription": "Summarize paediatric consults into SOA only (Subjective, Objective, Assessment). No Plan. doctor-friendly, neutral wording.\n\nDo NOT include a Plan, advice, product names, dosages, cadences, or instructions.\n\nPaediatric red flags\n - Seizure/fits\n - Difficulty in breathing, breathless\n - Chest recession\n - Unconscious\n - Unable to walk/very weak\n - Sunken eyes\n - High fever > 40 in less than 3 months old\n - Sever pain\n - Non blanchable body rash\n\n\nReturn STRICT JSON with keys: soa_markdown, risk_hypotheses[], red_flags[], next_visit_metrics[]. Language = preferred_language. ≤150 words in soa_markdown. Non-diagnostic phrasing (use 'consideration', 'pattern', 'risk').",
+        "toolDescription": "Summarize paediatric consults into SOA only (Subjective, Objective, Assessment). No Plan. doctor-friendly, neutral wording.\n\nDo NOT include a Plan, advice, product names, dosages, cadences, or instructions.\n\nPaediatric red flags\n - Seizure/fits\n - Difficulty in breathing, breathless\n - Chest recession\n - Unconscious\n - Unable to walk/very weak\n - Sunken eyes\n - High fever > 40 in less than 3 months old\n - Sever pain\n - Non blanchable body rash\n\n\nReturn STRICT JSON with ONLY these keys: soa_markdown, risk_hypotheses[], red_flags[], next_visit_metrics[]. Do not include any other fields like preferred_language or soa_only. ≤150 words in soa_markdown. Non-diagnostic phrasing (use 'consideration', 'pattern', 'risk').",
         "text": "=Transcript Input: {{ $('Webhook').item.json.body['transcribe-input'] }}\n\nMedical Notes: {{ $('Webhook').item.json.body['medical-notes'] }}\n\nDo not give me clarification questions.",
         "options": {}
       },
@@ -239,7 +239,7 @@
     },
     {
       "parameters": {
-        "toolDescription": "Summarize the conditions of the skin, hair, nails, and related mucous membranes, including diseases, infections, allergies, and cosmetic concerns.\n\nDo NOT include a Plan, advice, product names, dosages, cadences, or instructions. \n\nReturn STRICT JSON with keys: soa_markdown, risk_hypotheses[], red_flags[], next_visit_metrics[]. Language = preferred_language. ≤150 words in soa_markdown. Non-diagnostic phrasing (use 'consideration', 'pattern', 'risk').",
+        "toolDescription": "Summarize the conditions of the skin, hair, nails, and related mucous membranes, including diseases, infections, allergies, and cosmetic concerns.\n\nDo NOT include a Plan, advice, product names, dosages, cadences, or instructions. \n\nReturn STRICT JSON with ONLY these keys: soa_markdown, risk_hypotheses[], red_flags[], next_visit_metrics[]. Do not include any other fields like preferred_language or soa_only. ≤150 words in soa_markdown. Non-diagnostic phrasing (use 'consideration', 'pattern', 'risk').",
         "text": "=Transcript Input: {{ $('Webhook').item.json.body['transcribe-input'] }}\n\nMedical Notes: {{ $('Webhook').item.json.body['medical-notes'] }}\n\nDo not give me clarification questions.",
         "options": {}
       },

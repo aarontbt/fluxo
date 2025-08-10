@@ -55,15 +55,20 @@ export async function sendToN8n({
     console.log('✅ Successfully sent data to n8n:', result)
 
     // Parse the n8n response which contains the medical analysis
-    if (result.output) {
+    if (Array.isArray(result) && result.length > 0 && result[0].output) {
       try {
-        // Extract JSON from the output string (it's wrapped in ```json)
-        const jsonMatch = result.output.match(/```json\n([\s\S]*?)\n```/)
-        if (jsonMatch) {
-          const analysisData = JSON.parse(jsonMatch[1])
-          console.log('🩺 Parsed medical analysis:', analysisData)
-          return analysisData as N8nAnalysisResponse
+        const outputData = result[0].output
+        console.log('🩺 Parsed medical analysis:', outputData)
+        
+        // Map the response to our expected interface format
+        const analysisData: N8nAnalysisResponse = {
+          soa_markdown: outputData.soa_markdown || '',
+          risk_hypotheses: outputData.risk_hypotheses || [],
+          red_flags: outputData.red_flags || [],
+          next_visit_metrics: outputData.next_visit_metrics || []
         }
+        
+        return analysisData
       } catch (parseError) {
         console.error('❌ Failed to parse n8n analysis response:', parseError)
       }

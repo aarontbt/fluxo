@@ -1,0 +1,39 @@
+{
+  "type": "json_schema",
+  "json_schema": {
+    "name": "medical_soa_analysis",
+    "description": "Medical SOA (Subjective, Objective, Assessment, Plan) analysis with risk hypotheses and red flags",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "soa_markdown": {
+          "type": "string",
+          "description": "Complete SOA in markdown format with subjective, objective, assessment, and plan sections"
+        },
+        "risk_hypotheses": {
+          "type": "array",
+          "description": "List of potential diagnoses or risk factors identified",
+          "items": {
+            "type": "string"
+          }
+        },
+        "red_flags": {
+          "type": "array",
+          "description": "Critical warning signs that require immediate attention",
+          "items": {
+            "type": "string"
+          }
+        },
+        "next_visit_metrics": {
+          "type": "array",
+          "description": "Metrics or indicators to monitor for next visit",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": ["soa_markdown", "risk_hypotheses", "red_flags", "next_visit_metrics"],
+      "additionalProperties": false
+    }
+  }
+}
