@@ -14,7 +14,6 @@ interface N8nAnalysisResponse {
 interface SendToN8nParams {
   transcription: string
   sessionNotes?: { timestamp: string; note: string }[]
-  medicalNotes?: any
 }
 
 const N8N_ENDPOINT = 'https://n8n.example.com/webhook/webhook-id'

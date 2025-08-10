@@ -752,6 +752,7 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
 
       pausedDurationRef.current = 0
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRecording, currentRecording, duration])
 
   const pauseRecording = useCallback(() => {
@@ -826,8 +827,7 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
       try {
         const n8nAnalysis = await sendToN8n({
           transcription: processedRecording.transcription,
-          sessionNotes: processedRecording.sessionNotes,
-          medicalNotes: processedRecording.medicalNotes
+          sessionNotes: processedRecording.sessionNotes
         })
 
         // Update recording with n8n analysis if received
