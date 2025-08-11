@@ -23,6 +23,10 @@ interface MedicalRecording {
     timestamp: string
     note: string
   }[]
+  speakerSegments?: Array<{
+    speaker: number | null
+    text: string
+  }>
   medicalNotes?: {
     subjective: {
       chiefComplaint: string
@@ -40,6 +44,12 @@ interface MedicalRecording {
       respiratory: string
       musculoskeletal: string
     }
+  }
+  n8nAnalysis?: {
+    soa_markdown: string
+    risk_hypotheses: string[]
+    red_flags: string[]
+    next_visit_metrics: string[]
   }
   isProcessing: boolean
 }
