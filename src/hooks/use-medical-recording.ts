@@ -89,11 +89,25 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
       sessionNotes: [
         {
           timestamp: '1:09:44 AM',
-          note: 'I want to add my notes...'
+          note: 'Patient mentions difficulty sleeping due to pain'
         },
         {
           timestamp: '1:09:52 AM',
-          note: 'I like Macdonals..'
+          note: 'Previous NSAIDs provided minimal relief'
+        }
+      ],
+      speakerSegments: [
+        {
+          speaker: 0,
+          text: "So I've been having this terrible back pain for about three days now."
+        },
+        {
+          speaker: 1,
+          text: "Can you describe when it started and what you were doing?"
+        },
+        {
+          speaker: 0,
+          text: "I was at my new gym doing Pilates and heard a popping noise in my back."
         }
       ],
       medicalNotes: {
@@ -114,7 +128,43 @@ export function useMedicalRecording(): UseMedicalRecordingReturn {
           musculoskeletal: "back pain"
         }
       },
-      isProcessing: false
+      isProcessing: false,
+      n8nAnalysis: {
+        soa_markdown: `## Subjective
+Patient reports severe lower back pain for 3 days following Pilates exercise. Heard popping noise during movement. Pain described as sharp and stabbing. Difficulty with ambulation - patient had to crawl to front door after driving home.
+
+## Objective
+- Vital signs: Stable
+- Ambulation: Limited, with visible difficulty
+- Range of motion: Significantly restricted due to pain
+- No signs of neurological deficit noted
+
+## Assessment
+Acute lumbar strain secondary to exercise-induced injury. Likely musculoligamentous injury given mechanism (popping sound during Pilates movement). No red flags for cauda equina or severe disc herniation at this time.
+
+## Plan
+1. **Medications**: Start NSAIDs - Ibuprofen 600mg TID with food
+2. **Activity**: Modified activity, avoid heavy lifting or twisting motions
+3. **Physical Therapy**: Refer if no improvement in 1 week
+4. **Follow-up**: Return in 1 week for reassessment
+5. **Red flag education**: Return immediately if numbness, weakness, or bowel/bladder dysfunction`,
+        risk_hypotheses: [
+          "Possible disc herniation if symptoms persist beyond 2 weeks",
+          "Risk of chronic pain if not properly rehabilitated",
+          "Potential for muscle spasm recurrence with premature return to exercise"
+        ],
+        red_flags: [
+          "Watch for progressive neurological symptoms",
+          "Monitor for cauda equina syndrome signs",
+          "Alert if fever develops (possible infection)"
+        ],
+        next_visit_metrics: [
+          "Pain scale improvement (target 50% reduction)",
+          "Range of motion assessment",
+          "Functional mobility testing",
+          "Review need for imaging if no improvement"
+        ]
+      }
     },
     {
       id: '2',
