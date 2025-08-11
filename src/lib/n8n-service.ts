@@ -59,7 +59,7 @@ export async function sendToN8n({
       try {
         const outputData = result[0].output
         console.log('🩺 Parsed medical analysis:', outputData)
-        
+
         // Map the response to our expected interface format
         const analysisData: N8nAnalysisResponse = {
           soa_markdown: outputData.soa_markdown || '',
@@ -67,7 +67,7 @@ export async function sendToN8n({
           red_flags: outputData.red_flags || [],
           next_visit_metrics: outputData.next_visit_metrics || []
         }
-        
+
         return analysisData
       } catch (parseError) {
         console.error('❌ Failed to parse n8n analysis response:', parseError)
