@@ -1,20 +1,4 @@
-interface N8nPayload {
-  'transcribe-input': string
-  'medical-notes': string[]
-  'domain-knowledge': string
-}
-
-interface N8nAnalysisResponse {
-  soa_markdown: string
-  risk_hypotheses: string[]
-  red_flags: string[]
-  next_visit_metrics: string[]
-}
-
-interface SendToN8nParams {
-  transcription: string
-  sessionNotes?: { timestamp: string; note: string }[]
-}
+import type { N8nPayload, N8nAnalysisResponse, SendToN8nParams } from '@/types/medical'
 
 const N8N_ENDPOINT = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL || 'https://your-n8n-instance.com/webhook/webhook-id'
 const BEARER_TOKEN = process.env.NEXT_PUBLIC_N8N_WEBHOOK_AUTH_TOKEN || 'your-auth-token-here'

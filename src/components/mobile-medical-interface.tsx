@@ -10,49 +10,7 @@ import { EnhancedRecordingInterface } from './enhanced-recording-interface'
 import { TranscriptionDisplay } from './transcription-display'
 import { MedicalNotesPanel } from './medical-notes-panel'
 import { motion, AnimatePresence } from 'framer-motion'
-
-interface MedicalRecording {
-  id: string
-  patientName: string
-  date: string
-  time: string
-  duration: number
-  audioBlob?: Blob
-  transcription?: string
-  sessionNotes?: {
-    timestamp: string
-    note: string
-  }[]
-  speakerSegments?: Array<{
-    speaker: number | null
-    text: string
-  }>
-  medicalNotes?: {
-    subjective: {
-      chiefComplaint: string
-      history: string
-    }
-    objective: string
-    assessment: string
-    plan: {
-      medications: string
-      procedures: string
-      followUp: string
-    }
-    ros?: {
-      cardiovascular: string
-      respiratory: string
-      musculoskeletal: string
-    }
-  }
-  n8nAnalysis?: {
-    soa_markdown: string
-    risk_hypotheses: string[]
-    red_flags: string[]
-    next_visit_metrics: string[]
-  }
-  isProcessing: boolean
-}
+import type { MedicalRecording, MobileViewMode } from '@/types/medical'
 
 interface MobileMedicalInterfaceProps {
   patientName: string
@@ -70,7 +28,6 @@ interface MobileMedicalInterfaceProps {
   onResumeRecording: () => void
 }
 
-type View = 'list' | 'recording' | 'transcription'
 
 export function MobileMedicalInterface({
   patientName,
@@ -87,7 +44,7 @@ export function MobileMedicalInterface({
   onPauseRecording,
   onResumeRecording,
 }: MobileMedicalInterfaceProps) {
-  const [currentView, setCurrentView] = useState<View>('recording')
+  const [currentView, setCurrentView] = useState<MobileViewMode>('recording')
   const [selectedRecording, setSelectedRecording] = useState<MedicalRecording | null>(null)
   const [isNotesSheetOpen, setIsNotesSheetOpen] = useState(false)
 

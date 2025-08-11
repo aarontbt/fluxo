@@ -6,8 +6,7 @@ import { EnhancedRecordingInterface } from '@/components/enhanced-recording-inte
 import { TranscriptionDisplay } from '@/components/transcription-display'
 import { MobileMedicalInterface } from '@/components/mobile-medical-interface'
 import { useMedicalRecording, PROCESSING_DELAY_MS } from '@/hooks/use-medical-recording'
-
-type ViewMode = 'recording' | 'transcription'
+import type { ViewMode } from '@/types/medical'
 
 export default function Home() {
   const {

@@ -3,71 +3,10 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { createSonioxService, SonioxTranscriptionService, TranscriptionResult } from '@/lib/soniox-service'
 import { sendToN8n } from '@/lib/n8n-service'
+import type { MedicalRecording, UseMedicalRecordingReturn, SessionNote } from '@/types/medical'
 
 // Constants
 export const PROCESSING_DELAY_MS = 2000 // 2 seconds for processing
-
-interface MedicalRecording {
-  id: string
-  patientName: string
-  date: string
-  time: string
-  duration: number
-  audioBlob?: Blob
-  transcription?: string
-  sessionNotes?: {
-    timestamp: string
-    note: string
-  }[]
-  liveTranscription?: string
-  speakerSegments?: Array<{
-    speaker: number | null
-    text: string
-  }>
-  medicalNotes?: {
-    subjective: {
-      chiefComplaint: string
-      history: string
-    }
-    objective: string
-    assessment: string
-    plan: {
-      medications: string
-      procedures: string
-      followUp: string
-    }
-    ros?: {
-      cardiovascular: string
-      respiratory: string
-      musculoskeletal: string
-    }
-  }
-  n8nAnalysis?: {
-    soa_markdown: string
-    risk_hypotheses: string[]
-    red_flags: string[]
-    next_visit_metrics: string[]
-  }
-  isProcessing: boolean
-}
-
-interface UseMedicalRecordingReturn {
-  isRecording: boolean
-  isPaused: boolean
-  duration: number
-  audioLevel: number
-  currentRecording: MedicalRecording | null
-  recordings: MedicalRecording[]
-  liveTranscription: string
-  transcriptionError: string | null
-  isTranscribing: boolean
-  startRecording: (patientName: string) => Promise<void>
-  stopRecording: (sessionNotes?: {timestamp: string, note: string}[]) => Promise<void>
-  pauseRecording: () => void
-  resumeRecording: () => void
-  processRecording: (recording: MedicalRecording) => Promise<void>
-  saveRecording: (recording: MedicalRecording) => void
-}
 
 export function useMedicalRecording(): UseMedicalRecordingReturn {
   const [isRecording, setIsRecording] = useState(false)
@@ -744,7 +683,7 @@ Acute lumbar strain secondary to exercise-induced injury. Likely musculoligament
     }
   }, [currentRecording, isRecording, isPaused])
 
-  const stopRecording = useCallback(async (sessionNotes?: {timestamp: string, note: string}[]) => {
+  const stopRecording = useCallback(async (sessionNotes?: SessionNote[]) => {
     if (mediaRecorderRef.current && isRecording) {
       console.log('🛑 STOPPING RECORDING')
       mediaRecorderRef.current.stop()

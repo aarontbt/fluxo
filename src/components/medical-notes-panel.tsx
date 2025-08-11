@@ -3,49 +3,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ChevronDown, Edit3, Trash2, Save, User, AlertTriangle, Target, Activity } from 'lucide-react'
-
-interface MedicalRecording {
-  id: string
-  patientName: string
-  date: string
-  time: string
-  duration: number
-  audioBlob?: Blob
-  transcription?: string
-  sessionNotes?: {
-    timestamp: string
-    note: string
-  }[]
-  speakerSegments?: Array<{
-    speaker: number | null
-    text: string
-  }>
-  medicalNotes?: {
-    subjective: {
-      chiefComplaint: string
-      history: string
-    }
-    objective: string
-    assessment: string
-    plan: {
-      medications: string
-      procedures: string
-      followUp: string
-    }
-    ros?: {
-      cardiovascular: string
-      respiratory: string
-      musculoskeletal: string
-    }
-  }
-  n8nAnalysis?: {
-    soa_markdown: string
-    risk_hypotheses: string[]
-    red_flags: string[]
-    next_visit_metrics: string[]
-  }
-  isProcessing: boolean
-}
+import type { MedicalRecording } from '@/types/medical'
 
 interface MedicalNotesPanelProps {
   recording?: MedicalRecording | null
