@@ -5,7 +5,7 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Fluxo - Healthcare Voice Assistant',
+  title: 'Fluxo Scribe - Healthcare Voice Assistant',
   description: 'AI-powered voice recording and analysis for healthcare professionals',
 }
 
