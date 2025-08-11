@@ -188,6 +188,7 @@ export function MobileMedicalInterface({
               </SheetTrigger>
               <SheetContent side="right" className="w-full sm:w-96 p-0">
                 <MedicalNotesPanel
+                  recording={selectedRecording || currentRecording}
                   transcriptionText={selectedRecording?.transcription || currentRecording?.transcription}
                   lastSaved="a minute ago"
                 />
@@ -253,6 +254,7 @@ export function MobileMedicalInterface({
             </SheetTrigger>
             <SheetContent side="right" className="w-full sm:w-96 p-0">
               <MedicalNotesPanel
+                recording={selectedRecording || currentRecording}
                 transcriptionText={selectedRecording?.transcription || currentRecording?.transcription}
                 lastSaved="a minute ago"
               />
