@@ -197,8 +197,8 @@ export default function Home() {
                 </div>
               )}
               
-              {/* Live Transcription */}
-              {(liveTranscription || currentRecording?.liveTranscription) && (
+              {/* Live Transcription - Only show during active recording */}
+              {isRecording && (liveTranscription || currentRecording?.liveTranscription) && (
                 <div className="space-y-4 mb-6">
                   <div className="text-xs font-medium text-blue-600 uppercase tracking-wide">
                     Live Transcription
@@ -206,40 +206,6 @@ export default function Home() {
                   <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
                     {liveTranscription || currentRecording?.liveTranscription}
                   </div>
-                </div>
-              )}
-              
-              {/* Final Transcription with Speaker Segments */}
-              {currentRecording?.transcription && !isRecording && (
-                <div className="space-y-4 mb-6">
-                  <div className="text-xs font-medium text-green-600 uppercase tracking-wide">
-                    Final Transcription
-                  </div>
-                  {currentRecording.speakerSegments && currentRecording.speakerSegments.length > 0 ? (
-                    <div className="space-y-3">
-                      {currentRecording.speakerSegments.map((segment, index) => (
-                        <div 
-                          key={index}
-                          className={`p-3 rounded-lg border-l-4 ${
-                            segment.speaker !== null
-                              ? `bg-blue-50 text-blue-900 border-blue-400`
-                              : 'bg-gray-50 text-gray-800 border-gray-300'
-                          }`}
-                        >
-                          <div className="text-xs font-medium mb-1">
-                            {segment.speaker !== null ? `Speaker ${segment.speaker}` : 'Unknown Speaker'}
-                          </div>
-                          <div className="text-sm leading-relaxed">
-                            {segment.text}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-                      {currentRecording.transcription}
-                    </div>
-                  )}
                 </div>
               )}
 
