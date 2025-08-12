@@ -32,7 +32,7 @@ export default function Home() {
 
   const patientInfo = {
     name: "Aisha",
-    image: "/api/placeholder/40/40",
+    image: "",
     visitType: "First visit"
   }
 

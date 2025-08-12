@@ -46,7 +46,7 @@ export default function MedicalConsultationPage() {
 
   const patientInfo = {
     name: "Jen Garcia",
-    image: "/api/placeholder/40/40",
+    image: "",
     visitType: "Follow-up visit"
   }
 
