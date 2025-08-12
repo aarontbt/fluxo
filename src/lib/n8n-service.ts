@@ -1,7 +1,7 @@
 import type { N8nPayload, N8nAnalysisResponse, SendToN8nParams } from '@/types/medical'
 
-const N8N_ENDPOINT = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL || 'https://your-n8n-instance.com/webhook/webhook-id'
-const BEARER_TOKEN = process.env.NEXT_PUBLIC_N8N_WEBHOOK_AUTH_TOKEN || 'your-auth-token-here'
+const N8N_ENDPOINT = process.env.NEXT_PUBLIC_N8N_ENDPOINT || 'https://your-n8n-instance.com/webhook/webhook-id'
+const BEARER_TOKEN = process.env.NEXT_PUBLIC_N8N_BEARER_TOKEN || 'your-auth-token-here'
 
 export async function sendToN8n({
   transcription,
