@@ -26,6 +26,7 @@ interface MobileMedicalInterfaceProps {
   onStopRecording: () => Promise<void>
   onPauseRecording: () => void
   onResumeRecording: () => void
+  onPrepareNewRecording: () => void
 }
 
 
@@ -43,6 +44,7 @@ export function MobileMedicalInterface({
   onStopRecording,
   onPauseRecording,
   onResumeRecording,
+  onPrepareNewRecording,
 }: MobileMedicalInterfaceProps) {
   const [currentView, setCurrentView] = useState<MobileViewMode>('recording')
   const [selectedRecording, setSelectedRecording] = useState<MedicalRecording | null>(null)
@@ -56,6 +58,7 @@ export function MobileMedicalInterface({
   const handleStartNewRecording = () => {
     setSelectedRecording(null)
     setCurrentView('recording')
+    onPrepareNewRecording()
   }
 
   const handleStopRecording = async () => {

@@ -844,6 +844,13 @@ Acute lumbar strain secondary to exercise-induced injury. Likely musculoligament
     })
   }, [])
 
+  const prepareNewRecording = useCallback(() => {
+    setDuration(0)
+    setCurrentRecording(null)
+    setLiveTranscription('')
+    setTranscriptionError(null)
+  }, [])
+
   return {
     isRecording,
     isPaused,
@@ -860,5 +867,6 @@ Acute lumbar strain secondary to exercise-induced injury. Likely musculoligament
     resumeRecording,
     processRecording,
     saveRecording,
+    prepareNewRecording,
   }
 }

@@ -79,6 +79,7 @@ export interface UseMedicalRecordingReturn {
   resumeRecording: () => void
   processRecording: (recording: MedicalRecording) => Promise<void>
   saveRecording: (recording: MedicalRecording) => void
+  prepareNewRecording: () => void
 }
 
 // N8n service types

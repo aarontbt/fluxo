@@ -22,7 +22,8 @@ export default function Home() {
     startRecording,
     stopRecording,
     pauseRecording,
-    resumeRecording
+    resumeRecording,
+    prepareNewRecording
   } = useMedicalRecording()
 
   const [viewMode, setViewMode] = useState<ViewMode>('recording')
@@ -46,6 +47,7 @@ export default function Home() {
     setViewMode('recording')
     setMedicalNotes('')
     setNoteHistory([])
+    prepareNewRecording()
   }
 
   const handleStartRecording = async () => {
@@ -108,6 +110,7 @@ export default function Home() {
           onStopRecording={handleStopRecording}
           onPauseRecording={pauseRecording}
           onResumeRecording={resumeRecording}
+          onPrepareNewRecording={prepareNewRecording}
         />
       </div>
 

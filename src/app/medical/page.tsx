@@ -76,6 +76,7 @@ export default function MedicalConsultationPage() {
           onStopRecording={async () => toggleRecording()}
           onPauseRecording={() => {}}
           onResumeRecording={() => {}}
+          onPrepareNewRecording={() => {}}
         />
       </div>
 
